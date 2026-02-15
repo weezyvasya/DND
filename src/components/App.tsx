@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Dice3D from './Dice3D';
-import Controls from './Controls';
-import Settings from './Settings';
-import RollHistory from './RollHistory';
-import RollButton from './RollButton';
+import React, { useState, useEffect, useCallback } from "react";
+import Dice3D from "./Dice3D";
+import Controls from "./Controls";
+import Settings from "./Settings";
+import RollHistory from "./RollHistory";
+import RollButton from "./RollButton";
 
 interface AppState {
   isRolling: boolean;
@@ -31,7 +31,7 @@ const App: React.FC = () => {
     const initOpacity = async () => {
       if (window.electronAPI) {
         const currentOpacity = await window.electronAPI.getOpacity();
-        setState(prev => ({ ...prev, opacity: currentOpacity }));
+        setState((prev) => ({ ...prev, opacity: currentOpacity }));
       }
     };
     initOpacity();
@@ -54,14 +54,14 @@ const App: React.FC = () => {
   const handleRoll = useCallback(() => {
     if (state.isRolling) return;
 
-    setState(prev => ({ ...prev, isRolling: true }));
+    setState((prev) => ({ ...prev, isRolling: true }));
 
     // Roll animation duration (2-3 seconds)
     const animationDuration = 2000 + Math.random() * 1000;
 
     setTimeout(() => {
       const newResult = Math.floor(Math.random() * 20) + 1;
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         result: newResult,
         isRolling: false,
@@ -73,14 +73,14 @@ const App: React.FC = () => {
   useEffect(() => {
     // Keyboard shortcut for rolling (Spacebar)
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !state.isRolling && !state.showSettings) {
+      if (e.code === "Space" && !state.isRolling && !state.showSettings) {
         e.preventDefault();
         handleRoll();
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [state.isRolling, state.showSettings, handleRoll]);
 
   const handleClose = () => {
@@ -90,35 +90,42 @@ const App: React.FC = () => {
   };
 
   const toggleSettings = () => {
-    setState(prev => ({ ...prev, showSettings: !prev.showSettings }));
+    setState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
   };
 
-  const updateSettings = (updates: Partial<Pick<AppState, 'clickThrough' | 'opacity' | 'animationSpeed'>>) => {
-    setState(prev => ({ ...prev, ...updates }));
+  const updateSettings = (
+    updates: Partial<
+      Pick<AppState, "clickThrough" | "opacity" | "animationSpeed">
+    >,
+  ) => {
+    setState((prev) => ({ ...prev, ...updates }));
   };
 
   return (
-    <div 
+    <div
       className="w-full h-full flex items-center justify-center bg-transparent"
       style={{ opacity: state.opacity }}
     >
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
         {/* Main Dice Area */}
+        {/* <h1 className="text-3xl font-bold underline text-blue-600">
+          Hello world!
+        </h1> */}
         <div className="relative flex flex-col items-center justify-center">
-          <Dice3D 
+          <Dice3D
             result={state.result}
             isRolling={state.isRolling}
             animationSpeed={state.animationSpeed}
             onRoll={handleRoll}
           />
-          
+
           {/* Result Display */}
           {state.result && !state.isRolling && (
             <div className="mt-6 text-6xl font-bold text-white drop-shadow-lg">
               {state.result}
             </div>
           )}
-          
+
           {/* Roll Button */}
           <RollButton isRolling={state.isRolling} onRoll={handleRoll} />
         </div>
@@ -152,3 +159,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+//зайти на сайт тэйлвинд и попременять стили, изучить названия классов
