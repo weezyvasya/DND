@@ -3,11 +3,15 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 
+type DiceSize = 'small' | 'medium' | 'large';
+
 interface Dice3DProps {
   result: number | null;
   isRolling: boolean;
   animationSpeed: number;
   onRoll: () => void;
+  sides: number;
+  size: DiceSize;
 }
 
 interface DiceMeshProps {
@@ -15,9 +19,10 @@ interface DiceMeshProps {
   isRolling: boolean;
   animationSpeed: number;
   onRoll: () => void;
+  sides: number;
 }
 
-const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, onRoll }) => {
+const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, onRoll, sides }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const rotationRef = useRef({ x: 0, y: 0, z: 0 });
   const rotationVelocityRef = useRef({ x: 0, y: 0, z: 0 });
@@ -33,7 +38,7 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
     } else if (!isRolling && result && meshRef.current) {
       // Snap to a position that represents the result
       // For simplicity, we'll use a consistent rotation based on result
-      const targetRotation = (result / 20) * Math.PI * 2;
+      const targetRotation = (result / sides) * Math.PI * 2;
       rotationRef.current = {
         x: targetRotation * 0.7,
         y: targetRotation,
@@ -116,9 +121,19 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
   );
 };
 
-const Dice3D: React.FC<Dice3DProps> = ({ result, isRolling, animationSpeed, onRoll }) => {
+const Dice3D: React.FC<Dice3DProps> = ({
+  result,
+  isRolling,
+  animationSpeed,
+  onRoll,
+  sides,
+  size,
+}) => {
+  const sizeClass =
+    size === 'small' ? 'w-40 h-40' : size === 'large' ? 'w-80 h-80' : 'w-64 h-64';
+
   return (
-    <div className="w-64 h-64 cursor-pointer" onClick={!isRolling ? onRoll : undefined}>
+    <div className={`${sizeClass} cursor-pointer`} onClick={!isRolling ? onRoll : undefined}>
       <Canvas>
         <PerspectiveCamera makeDefault position={[0, 0, 5]} />
         <DiceMesh
@@ -126,6 +141,7 @@ const Dice3D: React.FC<Dice3DProps> = ({ result, isRolling, animationSpeed, onRo
           isRolling={isRolling}
           animationSpeed={animationSpeed}
           onRoll={onRoll}
+          sides={sides}
         />
       </Canvas>
     </div>

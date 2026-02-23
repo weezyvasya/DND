@@ -1,17 +1,33 @@
 import React, { useState } from 'react';
 
+type DiceSize = 'small' | 'medium' | 'large';
+
 interface SettingsProps {
   clickThrough: boolean;
   opacity: number;
   animationSpeed: number;
-  onUpdate: (updates: { clickThrough?: boolean; opacity?: number; animationSpeed?: number }) => void;
+  diceSize: DiceSize;
+  onUpdate: (updates: {
+    clickThrough?: boolean;
+    opacity?: number;
+    animationSpeed?: number;
+    diceSize?: DiceSize;
+  }) => void;
   onClose: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ clickThrough, opacity, animationSpeed, onUpdate, onClose }) => {
+const Settings: React.FC<SettingsProps> = ({
+  clickThrough,
+  opacity,
+  animationSpeed,
+  diceSize,
+  onUpdate,
+  onClose,
+}) => {
   const [localClickThrough, setLocalClickThrough] = useState(clickThrough);
   const [localOpacity, setLocalOpacity] = useState(opacity);
   const [localAnimationSpeed, setLocalAnimationSpeed] = useState(animationSpeed);
+  const [localDiceSize, setLocalDiceSize] = useState<DiceSize>(diceSize);
 
   const handleClickThroughChange = (value: boolean) => {
     setLocalClickThrough(value);
@@ -26,6 +42,11 @@ const Settings: React.FC<SettingsProps> = ({ clickThrough, opacity, animationSpe
   const handleAnimationSpeedChange = (value: number) => {
     setLocalAnimationSpeed(value);
     onUpdate({ animationSpeed: value });
+  };
+
+  const handleDiceSizeChange = (value: DiceSize) => {
+    setLocalDiceSize(value);
+    onUpdate({ diceSize: value });
   };
 
   return (
@@ -104,6 +125,35 @@ const Settings: React.FC<SettingsProps> = ({ clickThrough, opacity, animationSpe
               onChange={(e) => handleAnimationSpeedChange(parseFloat(e.target.value))}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
+          </div>
+
+          {/* Dice Size Selector */}
+          <div>
+            <label className="block mb-2">
+              <span className="text-white">Dice Size</span>
+            </label>
+            <div className="flex gap-2">
+              {(['small', 'medium', 'large'] as DiceSize[]).map((size) => {
+                const isActive = localDiceSize === size;
+                const label = size === 'small' ? 'S' : size === 'large' ? 'L' : 'M';
+                return (
+                  <button
+                    key={size}
+                    onClick={() => handleDiceSizeChange(size)}
+                    className={`px-3 py-1 rounded-md text-sm font-semibold border transition-colors ${
+                      isActive
+                        ? 'bg-blue-600/80 border-blue-400 text-white'
+                        : 'bg-gray-800/80 border-white/20 text-white/70 hover:bg-gray-700/80 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-white/60 mt-1">
+              Controls the visual size of the dice while rolling
+            </p>
           </div>
         </div>
       </div>

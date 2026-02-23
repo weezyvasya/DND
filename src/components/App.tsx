@@ -5,6 +5,39 @@ import Settings from "./Settings";
 import RollHistory from "./RollHistory";
 import RollButton from "./RollButton";
 
+type DiceType = "d3" | "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
+type DiceSize = "small" | "medium" | "large";
+
+const DICE_TYPES: { id: DiceType; label: string }[] = [
+  { id: "d3", label: "d3" },
+  { id: "d4", label: "d4" },
+  { id: "d6", label: "d6" },
+  { id: "d8", label: "d8" },
+  { id: "d10", label: "d10" },
+  { id: "d12", label: "d12" },
+  { id: "d20", label: "d20" },
+];
+
+const getSidesForDie = (type: DiceType): number => {
+  switch (type) {
+    case "d3":
+      return 3;
+    case "d4":
+      return 4;
+    case "d6":
+      return 6;
+    case "d8":
+      return 8;
+    case "d10":
+      return 10;
+    case "d12":
+      return 12;
+    case "d20":
+    default:
+      return 20;
+  }
+};
+
 interface AppState {
   isRolling: boolean;
   result: number | null;
@@ -13,6 +46,8 @@ interface AppState {
   opacity: number;
   animationSpeed: number;
   showSettings: boolean;
+  selectedDie: DiceType;
+  diceSize: DiceSize;
 }
 
 const App: React.FC = () => {
@@ -24,6 +59,8 @@ const App: React.FC = () => {
     opacity: 1.0,
     animationSpeed: 1.0,
     showSettings: false,
+    selectedDie: "d20",
+    diceSize: "medium",
   });
 
   useEffect(() => {
@@ -60,7 +97,8 @@ const App: React.FC = () => {
     const animationDuration = 2000 + Math.random() * 1000;
 
     setTimeout(() => {
-      const newResult = Math.floor(Math.random() * 20) + 1;
+      const sides = getSidesForDie(state.selectedDie);
+      const newResult = Math.floor(Math.random() * sides) + 1;
       setState((prev) => ({
         ...prev,
         result: newResult,
@@ -68,7 +106,7 @@ const App: React.FC = () => {
         rollHistory: [newResult, ...prev.rollHistory].slice(0, 5),
       }));
     }, animationDuration);
-  }, [state.isRolling]);
+  }, [state.isRolling, state.selectedDie]);
 
   useEffect(() => {
     // Keyboard shortcut for rolling (Spacebar)
@@ -95,10 +133,22 @@ const App: React.FC = () => {
 
   const updateSettings = (
     updates: Partial<
-      Pick<AppState, "clickThrough" | "opacity" | "animationSpeed">
+      Pick<
+        AppState,
+        "clickThrough" | "opacity" | "animationSpeed" | "diceSize"
+      >
     >,
   ) => {
     setState((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleSelectDie = (die: DiceType) => {
+    if (state.isRolling) return;
+    setState((prev) => ({
+      ...prev,
+      selectedDie: die,
+      result: null,
+    }));
   };
 
   return (
@@ -107,6 +157,29 @@ const App: React.FC = () => {
       style={{ opacity: state.opacity }}
     >
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
+        {/* Dice type selector */}
+        <div className="absolute top-4 left-4 flex gap-2 z-40">
+          {DICE_TYPES.map((die) => {
+            const isActive = state.selectedDie === die.id;
+            return (
+              <button
+                key={die.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectDie(die.id);
+                }}
+                className={`px-2 py-1 rounded-md text-xs font-semibold border transition-colors backdrop-blur-sm ${
+                  isActive
+                    ? "bg-blue-600/80 border-blue-400 text-white"
+                    : "bg-black/40 border-white/20 text-white/70 hover:bg-black/60 hover:text-white"
+                }`}
+              >
+                {die.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Main Dice Area */}
         {/* <h1 className="text-3xl font-bold underline text-blue-600">
           Hello world!
@@ -117,6 +190,8 @@ const App: React.FC = () => {
             isRolling={state.isRolling}
             animationSpeed={state.animationSpeed}
             onRoll={handleRoll}
+            sides={getSidesForDie(state.selectedDie)}
+            size={state.diceSize}
           />
 
           {/* Result Display */}
@@ -144,6 +219,7 @@ const App: React.FC = () => {
             clickThrough={state.clickThrough}
             opacity={state.opacity}
             animationSpeed={state.animationSpeed}
+            diceSize={state.diceSize}
             onUpdate={updateSettings}
             onClose={toggleSettings}
           />
