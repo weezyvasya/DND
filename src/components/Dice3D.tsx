@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -22,10 +22,84 @@ interface DiceMeshProps {
   sides: number;
 }
 
+const createTrapezohedronD10Geometry = (): THREE.BufferGeometry => {
+  // Approximation of a classic d10 (pentagonal trapezohedron):
+  // 2 apices + 10 belt vertices (alternating heights). Faces are kites (triangulated here).
+  const n = 5;
+  const beltCount = 2 * n; // 10
+
+  const apexY = 1.15;
+  const beltY = 0.38;
+  const r = 1.0;
+
+  const positions: number[] = [];
+
+  const topIndex = 0;
+  positions.push(0, apexY, 0);
+
+  const bottomIndex = 1;
+  positions.push(0, -apexY, 0);
+
+  // Belt vertices start at index 2
+  for (let i = 0; i < beltCount; i++) {
+    const angle = (i * Math.PI) / n; // 2π / (2n)
+    const y = i % 2 === 0 ? beltY : -beltY;
+    positions.push(r * Math.cos(angle), y, r * Math.sin(angle));
+  }
+
+  const indices: number[] = [];
+  const beltStart = 2;
+
+  for (let i = 0; i < beltCount; i++) {
+    const a = beltStart + i;
+    const b = beltStart + ((i + 1) % beltCount);
+
+    // Kite face (top, a, b, bottom) split into two triangles
+    indices.push(topIndex, a, b);
+    indices.push(bottomIndex, b, a);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.center();
+  return geometry;
+};
+
+const createGeometryForSides = (sides: number): THREE.BufferGeometry => {
+  switch (sides) {
+    case 3:
+      // d3: triangular prism-like shape
+      return new THREE.CylinderGeometry(1, 1, 0.9, 3, 1);
+    case 4:
+      return new THREE.TetrahedronGeometry(1, 0);
+    case 6:
+      return new THREE.BoxGeometry(1.6, 1.6, 1.6);
+    case 8:
+      return new THREE.OctahedronGeometry(1, 0);
+    case 10:
+      return createTrapezohedronD10Geometry();
+    case 12:
+      return new THREE.DodecahedronGeometry(1, 0);
+    case 20:
+    default:
+      return new THREE.IcosahedronGeometry(1, 0);
+  }
+};
+
 const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, onRoll, sides }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const rotationRef = useRef({ x: 0, y: 0, z: 0 });
   const rotationVelocityRef = useRef({ x: 0, y: 0, z: 0 });
+
+  const geometry = useMemo(() => createGeometryForSides(sides), [sides]);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
 
   useEffect(() => {
     if (isRolling && meshRef.current) {
@@ -81,6 +155,7 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
     <>
       <mesh
         ref={meshRef}
+        geometry={geometry}
         onClick={!isRolling ? onRoll : undefined}
         onPointerOver={(e) => {
           if (!isRolling) {
@@ -92,7 +167,6 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
           document.body.style.cursor = 'default';
         }}
       >
-        <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial
           color="#3b82f6"
           metalness={0.7}
@@ -103,8 +177,7 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
       </mesh>
       
       {/* Wireframe overlay */}
-      <mesh>
-        <icosahedronGeometry args={[1.01, 0]} />
+      <mesh geometry={geometry} scale={1.01}>
         <meshBasicMaterial
           color="#ffffff"
           wireframe

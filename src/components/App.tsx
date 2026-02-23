@@ -48,6 +48,7 @@ interface AppState {
   showSettings: boolean;
   selectedDie: DiceType;
   diceSize: DiceSize;
+  isDiceVisible: boolean;
 }
 
 const App: React.FC = () => {
@@ -61,6 +62,7 @@ const App: React.FC = () => {
     showSettings: false,
     selectedDie: "d20",
     diceSize: "medium",
+    isDiceVisible: true,
   });
 
   useEffect(() => {
@@ -144,11 +146,29 @@ const App: React.FC = () => {
 
   const handleSelectDie = (die: DiceType) => {
     if (state.isRolling) return;
-    setState((prev) => ({
-      ...prev,
-      selectedDie: die,
-      result: null,
-    }));
+    setState((prev) => {
+      // If hidden, reselecting the same die shows it again
+      if (!prev.isDiceVisible && prev.selectedDie === die) {
+        return { ...prev, isDiceVisible: true };
+      }
+
+      // Selecting any die shows the center dice
+      if (prev.selectedDie !== die) {
+        return {
+          ...prev,
+          selectedDie: die,
+          isDiceVisible: true,
+          result: null,
+        };
+      }
+
+      return prev;
+    });
+  };
+
+  const handleHideCenterDice = () => {
+    if (state.isRolling) return;
+    setState((prev) => ({ ...prev, isDiceVisible: false }));
   };
 
   return (
@@ -185,24 +205,47 @@ const App: React.FC = () => {
           Hello world!
         </h1> */}
         <div className="relative flex flex-col items-center justify-center">
-          <Dice3D
-            result={state.result}
-            isRolling={state.isRolling}
-            animationSpeed={state.animationSpeed}
-            onRoll={handleRoll}
-            sides={getSidesForDie(state.selectedDie)}
-            size={state.diceSize}
-          />
+          {state.isDiceVisible && (
+            <div className="relative flex flex-col items-center justify-center">
+              {/* Dice label */}
+              <div className="absolute -top-6 text-white/80 text-sm font-semibold tracking-wide drop-shadow">
+                {state.selectedDie}
+              </div>
+
+              {/* Close (hide) button on the centered dice */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleHideCenterDice();
+                }}
+                className="absolute -top-3 -right-3 w-7 h-7 flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 rounded-full text-white transition-colors backdrop-blur-sm z-50"
+                title="Hide"
+              >
+                &#10062;
+              </button>
+
+              <Dice3D
+                result={state.result}
+                isRolling={state.isRolling}
+                animationSpeed={state.animationSpeed}
+                onRoll={handleRoll}
+                sides={getSidesForDie(state.selectedDie)}
+                size={state.diceSize}
+              />
+            </div>
+          )}
 
           {/* Result Display */}
-          {state.result && !state.isRolling && (
+          {state.isDiceVisible && state.result && !state.isRolling && (
             <div className="mt-6 text-6xl font-bold text-blue-500 drop-shadow-lg">
               {state.result}
             </div>
           )}
 
           {/* Roll Button */}
-          <RollButton isRolling={state.isRolling} onRoll={handleRoll} />
+          {state.isDiceVisible && (
+            <RollButton isRolling={state.isRolling} onRoll={handleRoll} />
+          )}
         </div>
 
         {/* Controls */}
