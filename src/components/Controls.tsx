@@ -5,11 +5,36 @@ interface ControlsProps {
   onRoll: () => void;
   onClose: () => void;
   onSettings: () => void;
+  isMultiMode: boolean;
+  onToggleMulti: () => void;
 }
 
-const Controls: React.FC<ControlsProps> = ({ isRolling, onRoll, onClose, onSettings }) => {
+const Controls: React.FC<ControlsProps> = ({
+  isRolling,
+  onRoll,
+  onClose,
+  onSettings,
+  isMultiMode,
+  onToggleMulti,
+}) => {
   return (
     <div className="absolute top-4 right-4 flex gap-2 z-50">
+      {/* Multiple Dice Mode Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleMulti();
+        }}
+        className={`px-3 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-colors backdrop-blur-sm border ${
+          isMultiMode
+            ? 'bg-blue-600/80 border-blue-400 text-white'
+            : 'bg-black/30 hover:bg-black/50 border-white/20 text-white/80'
+        }`}
+        title="Multiple dice mode"
+      >
+        Multiple
+      </button>
+
       {/* Settings Button */}
       <button
         onClick={(e) => {

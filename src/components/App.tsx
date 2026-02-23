@@ -49,6 +49,10 @@ interface AppState {
   selectedDie: DiceType;
   diceSize: DiceSize;
   isDiceVisible: boolean;
+  isMultiMode: boolean;
+  multiSelection: Record<DiceType, number>;
+  multiTotal: number | null;
+  multiBreakdown: { type: DiceType; count: number; results: number[] }[];
 }
 
 const App: React.FC = () => {
@@ -63,6 +67,18 @@ const App: React.FC = () => {
     selectedDie: "d20",
     diceSize: "medium",
     isDiceVisible: true,
+    isMultiMode: false,
+    multiSelection: {
+      d3: 0,
+      d4: 0,
+      d6: 0,
+      d8: 0,
+      d10: 0,
+      d12: 0,
+      d20: 0,
+    },
+    multiTotal: null,
+    multiBreakdown: [],
   });
 
   useEffect(() => {
@@ -93,22 +109,64 @@ const App: React.FC = () => {
   const handleRoll = useCallback(() => {
     if (state.isRolling) return;
 
+    const { isMultiMode, selectedDie, multiSelection } = state;
+
     setState((prev) => ({ ...prev, isRolling: true }));
 
     // Roll animation duration (2-3 seconds)
     const animationDuration = 2000 + Math.random() * 1000;
 
     setTimeout(() => {
-      const sides = getSidesForDie(state.selectedDie);
-      const newResult = Math.floor(Math.random() * sides) + 1;
-      setState((prev) => ({
-        ...prev,
-        result: newResult,
-        isRolling: false,
-        rollHistory: [newResult, ...prev.rollHistory].slice(0, 5),
-      }));
+      if (!isMultiMode) {
+        const sides = getSidesForDie(selectedDie);
+        const newResult = Math.floor(Math.random() * sides) + 1;
+        setState((prev) => ({
+          ...prev,
+          result: newResult,
+          isRolling: false,
+          // keep history as single values
+          rollHistory: [newResult, ...prev.rollHistory].slice(0, 5),
+          // clear multi-specific results when in single mode
+          multiTotal: null,
+          multiBreakdown: [],
+        }));
+      } else {
+        const entries = Object.entries(multiSelection).filter(
+          ([, count]) => count > 0,
+        ) as [DiceType, number][];
+
+        if (entries.length === 0) {
+          // nothing selected, just stop rolling
+          setState((prev) => ({ ...prev, isRolling: false }));
+          return;
+        }
+
+        let total = 0;
+        const breakdown: { type: DiceType; count: number; results: number[] }[] =
+          [];
+
+        entries.forEach(([type, count]) => {
+          const sides = getSidesForDie(type);
+          const results: number[] = [];
+          for (let i = 0; i < count; i += 1) {
+            const roll = Math.floor(Math.random() * sides) + 1;
+            results.push(roll);
+            total += roll;
+          }
+          breakdown.push({ type, count, results });
+        });
+
+        setState((prev) => ({
+          ...prev,
+          isRolling: false,
+          result: null,
+          multiTotal: total,
+          multiBreakdown: breakdown,
+          rollHistory: [total, ...prev.rollHistory].slice(0, 5),
+        }));
+      }
     }, animationDuration);
-  }, [state.isRolling, state.selectedDie]);
+  }, [state.isRolling, state.isMultiMode, state.selectedDie, state.multiSelection]);
 
   useEffect(() => {
     // Keyboard shortcut for rolling (Spacebar)
@@ -171,6 +229,72 @@ const App: React.FC = () => {
     setState((prev) => ({ ...prev, isDiceVisible: false }));
   };
 
+  const handleToggleMultiMode = () => {
+    setState((prev) => ({
+      ...prev,
+      isMultiMode: !prev.isMultiMode,
+      // when leaving multi mode, keep selection but clear multi results from UI
+      ...(prev.isMultiMode
+        ? { multiTotal: null, multiBreakdown: [] }
+        : null),
+    }));
+  };
+
+  const handleIncrementDie = (die: DiceType) => {
+    setState((prev) => ({
+      ...prev,
+      multiSelection: {
+        ...prev.multiSelection,
+        [die]: prev.multiSelection[die] + 1,
+      },
+      // make this die the focused one visually
+      selectedDie: prev.selectedDie,
+    }));
+  };
+
+  const handleDecrementDie = (die: DiceType) => {
+    setState((prev) => {
+      const current = prev.multiSelection[die];
+      const nextCount = current > 0 ? current - 1 : 0;
+      if (nextCount === current) return prev;
+      return {
+        ...prev,
+        multiSelection: {
+          ...prev.multiSelection,
+          [die]: nextCount,
+        },
+      };
+    });
+  };
+
+  const handleDieIconClick = (die: DiceType) => {
+    if (!state.isMultiMode) {
+      handleSelectDie(die);
+    } else {
+      // In multi mode, clicking the icon increments that die and focuses it
+      setState((prev) => ({
+        ...prev,
+        selectedDie: die,
+        isDiceVisible: true,
+        multiSelection: {
+          ...prev.multiSelection,
+          [die]: prev.multiSelection[die] + 1,
+        },
+      }));
+    }
+  };
+
+  const activeMultiEntries = Object.entries(state.multiSelection).filter(
+    ([, count]) => count > 0,
+  ) as [DiceType, number][];
+
+  const selectionLabel =
+    activeMultiEntries.length > 0
+      ? activeMultiEntries
+          .map(([type, count]) => `${count}${type}`)
+          .join(" + ")
+      : "";
+
   return (
     <div
       className="w-full h-full flex items-center justify-center bg-transparent"
@@ -181,21 +305,49 @@ const App: React.FC = () => {
         <div className="absolute top-4 left-4 flex gap-2 z-40">
           {DICE_TYPES.map((die) => {
             const isActive = state.selectedDie === die.id;
+            const count = state.multiSelection[die.id];
             return (
-              <button
-                key={die.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectDie(die.id);
-                }}
-                className={`px-2 py-1 rounded-md text-xs font-semibold border transition-colors backdrop-blur-sm ${
-                  isActive
-                    ? "bg-blue-600/80 border-blue-400 text-white"
-                    : "bg-black/40 border-white/20 text-white/70 hover:bg-black/60 hover:text-white"
-                }`}
-              >
-                {die.label}
-              </button>
+              <div key={die.id} className="flex flex-col items-start gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDieIconClick(die.id);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-semibold border transition-colors backdrop-blur-sm ${
+                    isActive
+                      ? "bg-blue-600/80 border-blue-400 text-white"
+                      : "bg-black/40 border-white/20 text-white/70 hover:bg-black/60 hover:text-white"
+                  }`}
+                >
+                  {die.label}
+                </button>
+
+                {state.isMultiMode && (
+                  <div className="flex items-center gap-1 text-[10px] text-white/80">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDecrementDie(die.id);
+                      }}
+                      className="w-4 h-4 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70"
+                    >
+                      -
+                    </button>
+                    <span className="min-w-[1.25rem] text-center">
+                      {count}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIncrementDie(die.id);
+                      }}
+                      className="w-4 h-4 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -236,10 +388,40 @@ const App: React.FC = () => {
           )}
 
           {/* Result Display */}
-          {state.isDiceVisible && state.result && !state.isRolling && (
-            <div className="mt-6 text-6xl font-bold text-blue-500 drop-shadow-lg">
-              {state.result}
-            </div>
+          {!state.isMultiMode &&
+            state.isDiceVisible &&
+            state.result &&
+            !state.isRolling && (
+              <div className="mt-6 text-6xl font-bold text-blue-500 drop-shadow-lg">
+                {state.result}
+              </div>
+            )}
+
+          {state.isMultiMode && state.isDiceVisible && (
+            <>
+              {selectionLabel && (
+                <div className="mt-5 text-sm text-blue-500 font-semibold tracking-wide drop-shadow">
+                  {selectionLabel}
+                </div>
+              )}
+
+              {state.multiTotal !== null && !state.isRolling && (
+                <div className="mt-3 text-4xl font-bold text-blue-500 drop-shadow-lg">
+                  {state.multiTotal}
+                </div>
+              )}
+
+              {state.multiBreakdown.length > 0 && !state.isRolling && (
+                <div className="mt-2 text-xs text-white/75 text-center space-y-1 max-w-xs">
+                  {state.multiBreakdown.map((entry) => (
+                    <div key={entry.type}>
+                      <span className="font-semibold">{entry.type}:</span>{" "}
+                      <span>{entry.results.join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Roll Button */}
@@ -254,6 +436,8 @@ const App: React.FC = () => {
           onRoll={handleRoll}
           onClose={handleClose}
           onSettings={toggleSettings}
+          isMultiMode={state.isMultiMode}
+          onToggleMulti={handleToggleMultiMode}
         />
 
         {/* Settings Panel */}
