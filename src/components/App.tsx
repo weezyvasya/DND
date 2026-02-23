@@ -121,7 +121,7 @@ const App: React.FC = () => {
 
           {/* Result Display */}
           {state.result && !state.isRolling && (
-            <div className="mt-6 text-6xl font-bold text-white drop-shadow-lg">
+            <div className="mt-6 text-6xl font-bold text-blue-500 drop-shadow-lg">
               {state.result}
             </div>
           )}
