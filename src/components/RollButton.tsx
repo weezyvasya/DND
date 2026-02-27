@@ -16,16 +16,16 @@ const RollButton: React.FC<RollButtonProps> = ({ isRolling, onRoll }) => {
       }}
       disabled={isRolling}
       className={`
-        mt-8 px-8 py-3 rounded-full font-bold text-lg
-        transition-all duration-200 transform
+        mt-6 px-10 py-4 rounded-full font-black text-xl uppercase tracking-wider
+        transition-all duration-200 transform border-2
         ${isRolling
-          ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+          ? 'bg-gray-700/80 text-gray-400 cursor-not-allowed border-gray-600'
+          : 'bg-blue-600/90 hover:bg-blue-500 text-white border-blue-400/50 roll-btn hover:scale-105 active:scale-95'
         }
-        backdrop-blur-sm
+        backdrop-blur-md
       `}
     >
-      {isRolling ? 'ROLLING...' : 'ROLL'}
+      {isRolling ? '🎲 Rolling...' : '🎲 Roll'}
     </button>
   );
 };

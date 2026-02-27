@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-type DiceSize = 'small' | 'medium' | 'large';
+type DiceSize = 'small' | 'medium' | 'large' | 'xl';
 
 interface SettingsProps {
   clickThrough: boolean;
@@ -133,9 +133,9 @@ const Settings: React.FC<SettingsProps> = ({
               <span className="text-white">Dice Size</span>
             </label>
             <div className="flex gap-2">
-              {(['small', 'medium', 'large'] as DiceSize[]).map((size) => {
+              {(['small', 'medium', 'large', 'xl'] as DiceSize[]).map((size) => {
                 const isActive = localDiceSize === size;
-                const label = size === 'small' ? 'S' : size === 'large' ? 'L' : 'M';
+                const label = size === 'small' ? 'S' : size === 'large' ? 'L' : size === 'xl' ? 'XL' : 'M';
                 return (
                   <button
                     key={size}

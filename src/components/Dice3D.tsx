@@ -3,7 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 
-type DiceSize = 'small' | 'medium' | 'large';
+type DiceSize = 'small' | 'medium' | 'large' | 'xl';
 
 interface Dice3DProps {
   result: number | null;
@@ -203,7 +203,10 @@ const Dice3D: React.FC<Dice3DProps> = ({
   size,
 }) => {
   const sizeClass =
-    size === 'small' ? 'w-40 h-40' : size === 'large' ? 'w-80 h-80' : 'w-64 h-64';
+    size === 'small' ? 'w-40 h-40' : 
+    size === 'large' ? 'w-80 h-80' : 
+    size === 'xl' ? 'w-[28rem] h-[28rem]' : 
+    'w-64 h-64';
 
   return (
     <div className={`${sizeClass} cursor-pointer`} onClick={!isRolling ? onRoll : undefined}>

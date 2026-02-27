@@ -16,7 +16,7 @@
     "quick-installer": "npm run clean && npm run build && npm run make:win"
   },
   "author": {
-    "name": "Василий",
+    "name": "Vasiliy",
     "email": "your.email@example.com"
   },
   "license": "MIT",
@@ -68,7 +68,7 @@
           "name": "@electron-forge/maker-squirrel",
           "config": {
             "name": "d20_dice_roller",
-            "authors": "Василий",
+            "authors": "Vasiliy",
             "noMsi": true
           }
         },

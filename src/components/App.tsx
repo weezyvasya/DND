@@ -4,9 +4,10 @@ import Controls from "./Controls";
 import Settings from "./Settings";
 import RollHistory from "./RollHistory";
 import RollButton from "./RollButton";
+import { soundManager } from "../utils/sound";
 
 type DiceType = "d3" | "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
-type DiceSize = "small" | "medium" | "large";
+type DiceSize = "small" | "medium" | "large" | "xl";
 
 const DICE_TYPES: { id: DiceType; label: string }[] = [
   { id: "d3", label: "d3" },
@@ -111,6 +112,9 @@ const App: React.FC = () => {
 
     const { isMultiMode, selectedDie, multiSelection } = state;
 
+    // Play dice rolling sound
+    soundManager.playDiceRoll();
+
     setState((prev) => ({ ...prev, isRolling: true }));
 
     // Roll animation duration (2-3 seconds)
@@ -166,6 +170,18 @@ const App: React.FC = () => {
           multiTotal: total,
           multiBreakdown: breakdown,
           rollHistory: [total, ...prev.rollHistory].slice(0, 5),
+          // Auto-switch back to normal mode after multi roll
+          isMultiMode: false,
+          // Reset multi selection counts
+          multiSelection: {
+            d3: 0,
+            d4: 0,
+            d6: 0,
+            d8: 0,
+            d10: 0,
+            d12: 0,
+            d20: 0,
+          },
         }));
       }
     }, animationDuration);
@@ -303,17 +319,17 @@ const App: React.FC = () => {
     >
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
         {/* Dice type selector */}
-        <div className="absolute top-4 left-4 flex gap-1 z-40 flex-wrap max-w-[380px]">
+        <div className="absolute top-4 left-4 flex gap-2 z-40 flex-wrap max-w-[420px] p-3 rounded-xl ui-panel">
           {DICE_TYPES.map((die) => {
             const isActive = state.selectedDie === die.id;
             const count = state.multiSelection[die.id];
             return (
               <div
                 key={die.id}
-                className={`flex items-center rounded-md border transition-colors backdrop-blur-sm ${
+                className={`flex items-center rounded-lg border-2 transition-all ${
                   isActive
-                    ? "bg-blue-600/80 border-blue-400"
-                    : "bg-black/40 border-white/20 hover:bg-black/60"
+                    ? "bg-blue-600/90 border-blue-400 shadow-lg shadow-blue-500/30"
+                    : "bg-gray-800/80 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500"
                 }`}
               >
                 {/* Minus button (only in multi mode) */}
@@ -323,14 +339,14 @@ const App: React.FC = () => {
                       e.stopPropagation();
                       handleDecrementDie(die.id);
                     }}
-                    className={`w-5 h-6 flex items-center justify-center text-xs font-bold rounded-l-md transition-colors ${
+                    className={`w-6 h-8 flex items-center justify-center text-sm font-bold rounded-l-md transition-colors ${
                       count > 0
-                        ? "text-white/90 hover:bg-white/20"
+                        ? "text-white hover:bg-red-500/40"
                         : "text-white/30 cursor-not-allowed"
                     }`}
                     disabled={count === 0}
                   >
-                    -
+                    −
                   </button>
                 )}
 
@@ -340,9 +356,9 @@ const App: React.FC = () => {
                     e.stopPropagation();
                     handleDieIconClick(die.id);
                   }}
-                  className={`px-1.5 py-1 text-xs font-semibold transition-colors ${
-                    isActive ? "text-white" : "text-white/70 hover:text-white"
-                  } ${state.isMultiMode ? "" : "rounded-md"}`}
+                  className={`px-2 py-1.5 text-sm font-bold transition-colors ${
+                    isActive ? "text-white" : "text-white/80 hover:text-white"
+                  } ${state.isMultiMode ? "" : "rounded-lg"}`}
                 >
                   {state.isMultiMode && count > 0 ? `${count}${die.label}` : die.label}
                 </button>
@@ -354,7 +370,7 @@ const App: React.FC = () => {
                       e.stopPropagation();
                       handleIncrementDie(die.id);
                     }}
-                    className="w-5 h-6 flex items-center justify-center text-xs font-bold text-white/90 hover:bg-white/20 rounded-r-md transition-colors"
+                    className="w-6 h-8 flex items-center justify-center text-sm font-bold text-white hover:bg-green-500/40 rounded-r-md transition-colors"
                   >
                     +
                   </button>
@@ -365,14 +381,11 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Dice Area */}
-        {/* <h1 className="text-3xl font-bold underline text-blue-600">
-          Hello world!
-        </h1> */}
         <div className="relative flex flex-col items-center justify-center">
           {state.isDiceVisible && (
-            <div className="relative flex flex-col items-center justify-center">
+            <div className="relative flex flex-col items-center justify-center dice-container">
               {/* Dice label */}
-              <div className="absolute -top-6 text-white/80 text-sm font-semibold tracking-wide drop-shadow">
+              <div className="absolute -top-2 text-white text-lg font-bold tracking-wide dice-label uppercase">
                 {state.selectedDie}
               </div>
 
@@ -382,10 +395,10 @@ const App: React.FC = () => {
                   e.stopPropagation();
                   handleHideCenterDice();
                 }}
-                className="absolute -top-3 -right-3 w-7 h-7 flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 rounded-full text-white transition-colors backdrop-blur-sm z-50"
+                className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-red-600/60 hover:bg-red-500/80 rounded-full text-white transition-colors backdrop-blur-sm z-50 border border-red-400/50"
                 title="Hide"
               >
-                &#10062;
+                ✕
               </button>
 
               <Dice3D
@@ -404,7 +417,7 @@ const App: React.FC = () => {
             state.isDiceVisible &&
             state.result &&
             !state.isRolling && (
-              <div className="mt-6 text-6xl font-bold text-blue-500 drop-shadow-lg">
+              <div className="mt-4 text-7xl font-black text-blue-400 result-text">
                 {state.result}
               </div>
             )}
@@ -412,23 +425,23 @@ const App: React.FC = () => {
           {state.isMultiMode && state.isDiceVisible && (
             <>
               {selectionLabel && (
-                <div className="mt-5 text-sm text-blue-500 font-semibold tracking-wide drop-shadow">
+                <div className="mt-4 px-4 py-2 rounded-lg ui-panel text-lg text-blue-400 font-bold tracking-wide">
                   {selectionLabel}
                 </div>
               )}
 
               {state.multiTotal !== null && !state.isRolling && (
-                <div className="mt-3 text-4xl font-bold text-blue-500 drop-shadow-lg">
+                <div className="mt-3 text-6xl font-black text-blue-400 result-text">
                   {state.multiTotal}
                 </div>
               )}
 
               {state.multiBreakdown.length > 0 && !state.isRolling && (
-                <div className="mt-2 text-xs text-white/75 text-center space-y-1 max-w-xs">
+                <div className="mt-3 px-4 py-2 rounded-lg ui-panel text-sm text-white text-center space-y-1">
                   {state.multiBreakdown.map((entry) => (
-                    <div key={entry.type}>
-                      <span className="font-semibold">{entry.type}:</span>{" "}
-                      <span>{entry.results.join(", ")}</span>
+                    <div key={entry.type} className="breakdown-text">
+                      <span className="font-bold text-blue-400">{entry.type}:</span>{" "}
+                      <span className="text-white">{entry.results.join(", ")}</span>
                     </div>
                   ))}
                 </div>

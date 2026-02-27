@@ -9,13 +9,17 @@ const RollHistory: React.FC<RollHistoryProps> = ({ rolls }) => {
 
   return (
     <div className="absolute bottom-4 left-4 right-4 flex justify-center z-40">
-      <div className="bg-black/40 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10">
-        <div className="flex gap-2 items-center">
-          <span className="text-white/60 text-xs mr-2">Recent:</span>
+      <div className="ui-panel rounded-xl px-5 py-3">
+        <div className="flex gap-3 items-center">
+          <span className="text-white/80 text-sm font-semibold mr-1">📜 History:</span>
           {rolls.map((roll, index) => (
             <div
               key={index}
-              className="w-8 h-8 flex items-center justify-center bg-blue-600/50 rounded text-white text-sm font-semibold"
+              className={`w-10 h-10 flex items-center justify-center rounded-lg text-white text-base font-bold border-2 ${
+                index === 0 
+                  ? 'bg-blue-600/90 border-blue-400 shadow-lg shadow-blue-500/30' 
+                  : 'bg-gray-700/80 border-gray-600/50'
+              }`}
             >
               {roll}
             </div>

@@ -18,21 +18,21 @@ const Controls: React.FC<ControlsProps> = ({
   onToggleMulti,
 }) => {
   return (
-    <div className="absolute top-4 right-4 flex gap-2 z-50">
+    <div className="absolute top-4 right-4 flex gap-2 z-50 p-2 rounded-xl ui-panel">
       {/* Multiple Dice Mode Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onToggleMulti();
         }}
-        className={`px-3 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-colors backdrop-blur-sm border ${
+        className={`px-4 h-9 flex items-center justify-center rounded-lg text-sm font-bold transition-all border-2 ${
           isMultiMode
-            ? 'bg-blue-600/80 border-blue-400 text-white'
-            : 'bg-black/30 hover:bg-black/50 border-white/20 text-white/80'
+            ? 'bg-blue-600/90 border-blue-400 text-white shadow-lg shadow-blue-500/30'
+            : 'bg-gray-800/80 hover:bg-gray-700/80 border-gray-600/50 text-white/90 hover:border-gray-500'
         }`}
         title="Multiple dice mode"
       >
-        Multiple
+        🎯 Multi
       </button>
 
       {/* Settings Button */}
@@ -41,10 +41,10 @@ const Controls: React.FC<ControlsProps> = ({
           e.stopPropagation();
           onSettings();
         }}
-        className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors backdrop-blur-sm"
+        className="w-9 h-9 flex items-center justify-center bg-gray-800/80 hover:bg-gray-700/80 rounded-lg text-white transition-all border-2 border-gray-600/50 hover:border-gray-500 text-lg"
         title="Settings"
       >
-        &#128736;
+        ⚙️
       </button>
 
       {/* Close Button */}
@@ -53,10 +53,10 @@ const Controls: React.FC<ControlsProps> = ({
           e.stopPropagation();
           onClose();
         }}
-        className="w-8 h-8 flex items-center justify-center bg-red-500/30 hover:bg-red-500/50 rounded-full text-white transition-colors backdrop-blur-sm"
-        title="Close"
+        className="w-9 h-9 flex items-center justify-center bg-red-600/80 hover:bg-red-500 rounded-lg text-white transition-all border-2 border-red-500/50 hover:border-red-400 text-lg"
+        title="Close App"
       >
-        &#10062;
+        ✕
       </button>
     </div>
   );

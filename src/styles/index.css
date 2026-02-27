@@ -22,7 +22,62 @@ body {
   width: 100vw;
   height: 100vh;
   background: transparent;
-} 
+}
+
+/* Dice container with glow effect for visibility on maps */
+.dice-container {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 70%);
+  border-radius: 50%;
+  padding: 2rem;
+}
+
+/* Result text with strong visibility */
+.result-text {
+  text-shadow: 
+    0 0 10px rgba(59, 130, 246, 0.8),
+    0 0 20px rgba(59, 130, 246, 0.6),
+    0 0 30px rgba(59, 130, 246, 0.4),
+    2px 2px 4px rgba(0, 0, 0, 0.9),
+    -2px -2px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* Dice label with outline for visibility */
+.dice-label {
+  text-shadow: 
+    0 0 8px rgba(255, 255, 255, 0.5),
+    1px 1px 2px rgba(0, 0, 0, 0.9),
+    -1px -1px 2px rgba(0, 0, 0, 0.9),
+    1px -1px 2px rgba(0, 0, 0, 0.9),
+    -1px 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+/* Panel background for UI elements */
+.ui-panel {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Roll button with glow */
+.roll-btn {
+  box-shadow: 
+    0 4px 15px rgba(59, 130, 246, 0.4),
+    0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.roll-btn:hover {
+  box-shadow: 
+    0 6px 25px rgba(59, 130, 246, 0.6),
+    0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+/* Multi result breakdown */
+.breakdown-text {
+  text-shadow: 
+    1px 1px 3px rgba(0, 0, 0, 0.9),
+    -1px -1px 3px rgba(0, 0, 0, 0.9);
+}
 
 /* Custom scrollbar for roll history */
 .roll-history::-webkit-scrollbar {
@@ -50,6 +105,7 @@ body {
 button,
 input,
 select,
-textarea {
+textarea,
+canvas {
   -webkit-app-region: no-drag;
 }
