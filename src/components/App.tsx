@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Dice3D from "./Dice3D";
 import Controls from "./Controls";
 import Settings from "./Settings";
@@ -82,6 +82,9 @@ const App: React.FC = () => {
     multiBreakdown: [],
   });
 
+  // Track if mouse is over interactive UI elements
+  const [isMouseOverUI, setIsMouseOverUI] = useState(false);
+
   useEffect(() => {
     // Initialize opacity from Electron
     const initOpacity = async () => {
@@ -95,10 +98,23 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Set click-through mode
+    // Disable click-through when:
+    // - Settings is open
+    // - Mouse is hovering over UI elements
     if (window.electronAPI) {
-      window.electronAPI.setClickThrough(state.clickThrough);
+      const shouldClickThrough = state.clickThrough && !state.showSettings && !isMouseOverUI;
+      window.electronAPI.setClickThrough(shouldClickThrough);
     }
-  }, [state.clickThrough]);
+  }, [state.clickThrough, state.showSettings, isMouseOverUI]);
+
+  // Handlers for mouse enter/leave on interactive areas
+  const handleMouseEnterUI = useCallback(() => {
+    setIsMouseOverUI(true);
+  }, []);
+
+  const handleMouseLeaveUI = useCallback(() => {
+    setIsMouseOverUI(false);
+  }, []);
 
   useEffect(() => {
     // Set window opacity
@@ -319,7 +335,11 @@ const App: React.FC = () => {
     >
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
         {/* Dice type selector */}
-        <div className="absolute top-4 left-4 flex gap-2 z-40 flex-wrap max-w-[420px] p-3 rounded-xl ui-panel">
+        <div 
+          className="absolute top-4 left-4 flex gap-2 z-40 flex-wrap max-w-[420px] p-3 rounded-xl ui-panel"
+          onMouseEnter={handleMouseEnterUI}
+          onMouseLeave={handleMouseLeaveUI}
+        >
           {DICE_TYPES.map((die) => {
             const isActive = state.selectedDie === die.id;
             const count = state.multiSelection[die.id];
@@ -381,7 +401,11 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Dice Area */}
-        <div className="relative flex flex-col items-center justify-center">
+        <div 
+          className="relative flex flex-col items-center justify-center"
+          onMouseEnter={handleMouseEnterUI}
+          onMouseLeave={handleMouseLeaveUI}
+        >
           {state.isDiceVisible && (
             <div className="relative flex flex-col items-center justify-center dice-container">
               {/* Dice label */}
@@ -456,30 +480,45 @@ const App: React.FC = () => {
         </div>
 
         {/* Controls */}
-        <Controls
-          isRolling={state.isRolling}
-          onRoll={handleRoll}
-          onClose={handleClose}
-          onSettings={toggleSettings}
-          isMultiMode={state.isMultiMode}
-          onToggleMulti={handleToggleMultiMode}
-        />
+        <div
+          onMouseEnter={handleMouseEnterUI}
+          onMouseLeave={handleMouseLeaveUI}
+        >
+          <Controls
+            isRolling={state.isRolling}
+            onRoll={handleRoll}
+            onClose={handleClose}
+            onSettings={toggleSettings}
+            isMultiMode={state.isMultiMode}
+            onToggleMulti={handleToggleMultiMode}
+          />
+        </div>
 
         {/* Settings Panel */}
         {state.showSettings && (
-          <Settings
-            clickThrough={state.clickThrough}
-            opacity={state.opacity}
-            animationSpeed={state.animationSpeed}
-            diceSize={state.diceSize}
-            onUpdate={updateSettings}
-            onClose={toggleSettings}
-          />
+          <div
+            onMouseEnter={handleMouseEnterUI}
+            onMouseLeave={handleMouseLeaveUI}
+          >
+            <Settings
+              clickThrough={state.clickThrough}
+              opacity={state.opacity}
+              animationSpeed={state.animationSpeed}
+              diceSize={state.diceSize}
+              onUpdate={updateSettings}
+              onClose={toggleSettings}
+            />
+          </div>
         )}
 
         {/* Roll History */}
         {state.rollHistory.length > 0 && (
-          <RollHistory rolls={state.rollHistory} />
+          <div
+            onMouseEnter={handleMouseEnterUI}
+            onMouseLeave={handleMouseLeaveUI}
+          >
+            <RollHistory rolls={state.rollHistory} />
+          </div>
         )}
       </div>
     </div>
