@@ -7,16 +7,16 @@ const createWindow = (): void => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   
   mainWindow = new BrowserWindow({
-    width: 450,  // Увеличьте ширину
-    height: 650, // Увеличьте высоту
-    x: Math.floor((width - 450) / 2),
-    y: Math.floor((height - 650) / 2),
+    width: width,
+    height: height,
+    x: 0,
+    y: 0,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
-    hasShadow: true,  // Включите тень
+    hasShadow: false,
     skipTaskbar: false,
-    resizable: true,
+    resizable: false,
     minimizable: true,
     maximizable: false,
     closable: true,
@@ -24,13 +24,13 @@ const createWindow = (): void => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-      devTools: process.env.NODE_ENV === 'development' // DevTools только в разработке
+      preload: path.join(__dirname, 'preload.cjs'),
+      devTools: process.env.NODE_ENV === 'development'
     },
     titleBarStyle: 'hidden',
     vibrancy: 'under-window',
     visualEffectState: 'active',
-    show: false, // Сначала скрыть
+    show: false,
   });
 
   // Загружаем приложение

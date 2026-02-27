@@ -13,7 +13,7 @@ export default defineConfig({
       external: ['electron'],
       output: {
         format: 'cjs',
-        entryFileNames: '[name].js'
+        entryFileNames: '[name].cjs'
       }
     },
     minify: false

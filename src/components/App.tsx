@@ -60,7 +60,7 @@ const App: React.FC = () => {
     isRolling: false,
     result: null,
     rollHistory: [],
-    clickThrough: true,
+    clickThrough: false,
     opacity: 1.0,
     animationSpeed: 1.0,
     showSettings: false,
@@ -142,8 +142,11 @@ const App: React.FC = () => {
         }
 
         let total = 0;
-        const breakdown: { type: DiceType; count: number; results: number[] }[] =
-          [];
+        const breakdown: {
+          type: DiceType;
+          count: number;
+          results: number[];
+        }[] = [];
 
         entries.forEach(([type, count]) => {
           const sides = getSidesForDie(type);
@@ -166,7 +169,12 @@ const App: React.FC = () => {
         }));
       }
     }, animationDuration);
-  }, [state.isRolling, state.isMultiMode, state.selectedDie, state.multiSelection]);
+  }, [
+    state.isRolling,
+    state.isMultiMode,
+    state.selectedDie,
+    state.multiSelection,
+  ]);
 
   useEffect(() => {
     // Keyboard shortcut for rolling (Spacebar)
@@ -193,10 +201,7 @@ const App: React.FC = () => {
 
   const updateSettings = (
     updates: Partial<
-      Pick<
-        AppState,
-        "clickThrough" | "opacity" | "animationSpeed" | "diceSize"
-      >
+      Pick<AppState, "clickThrough" | "opacity" | "animationSpeed" | "diceSize">
     >,
   ) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -234,9 +239,7 @@ const App: React.FC = () => {
       ...prev,
       isMultiMode: !prev.isMultiMode,
       // when leaving multi mode, keep selection but clear multi results from UI
-      ...(prev.isMultiMode
-        ? { multiTotal: null, multiBreakdown: [] }
-        : null),
+      ...(prev.isMultiMode ? { multiTotal: null, multiBreakdown: [] } : null),
     }));
   };
 
@@ -290,9 +293,7 @@ const App: React.FC = () => {
 
   const selectionLabel =
     activeMultiEntries.length > 0
-      ? activeMultiEntries
-          .map(([type, count]) => `${count}${type}`)
-          .join(" + ")
+      ? activeMultiEntries.map(([type, count]) => `${count}${type}`).join(" + ")
       : "";
 
   return (
@@ -302,50 +303,61 @@ const App: React.FC = () => {
     >
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
         {/* Dice type selector */}
-        <div className="absolute top-4 left-4 flex gap-2 z-40">
+        <div className="absolute top-4 left-4 flex gap-1 z-40 flex-wrap max-w-[380px]">
           {DICE_TYPES.map((die) => {
             const isActive = state.selectedDie === die.id;
             const count = state.multiSelection[die.id];
             return (
-              <div key={die.id} className="flex flex-col items-start gap-1">
+              <div
+                key={die.id}
+                className={`flex items-center rounded-md border transition-colors backdrop-blur-sm ${
+                  isActive
+                    ? "bg-blue-600/80 border-blue-400"
+                    : "bg-black/40 border-white/20 hover:bg-black/60"
+                }`}
+              >
+                {/* Minus button (only in multi mode) */}
+                {state.isMultiMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDecrementDie(die.id);
+                    }}
+                    className={`w-5 h-6 flex items-center justify-center text-xs font-bold rounded-l-md transition-colors ${
+                      count > 0
+                        ? "text-white/90 hover:bg-white/20"
+                        : "text-white/30 cursor-not-allowed"
+                    }`}
+                    disabled={count === 0}
+                  >
+                    -
+                  </button>
+                )}
+
+                {/* Dice label button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDieIconClick(die.id);
                   }}
-                  className={`px-2 py-1 rounded-md text-xs font-semibold border transition-colors backdrop-blur-sm ${
-                    isActive
-                      ? "bg-blue-600/80 border-blue-400 text-white"
-                      : "bg-black/40 border-white/20 text-white/70 hover:bg-black/60 hover:text-white"
-                  }`}
+                  className={`px-1.5 py-1 text-xs font-semibold transition-colors ${
+                    isActive ? "text-white" : "text-white/70 hover:text-white"
+                  } ${state.isMultiMode ? "" : "rounded-md"}`}
                 >
-                  {die.label}
+                  {state.isMultiMode && count > 0 ? `${count}${die.label}` : die.label}
                 </button>
 
+                {/* Plus button (only in multi mode) */}
                 {state.isMultiMode && (
-                  <div className="flex items-center gap-1 text-[10px] text-white/80">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDecrementDie(die.id);
-                      }}
-                      className="w-4 h-4 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70"
-                    >
-                      -
-                    </button>
-                    <span className="min-w-[1.25rem] text-center">
-                      {count}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleIncrementDie(die.id);
-                      }}
-                      className="w-4 h-4 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70"
-                    >
-                      +
-                    </button>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleIncrementDie(die.id);
+                    }}
+                    className="w-5 h-6 flex items-center justify-center text-xs font-bold text-white/90 hover:bg-white/20 rounded-r-md transition-colors"
+                  >
+                    +
+                  </button>
                 )}
               </div>
             );
