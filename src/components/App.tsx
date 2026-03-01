@@ -99,8 +99,9 @@ const App: React.FC = () => {
   useEffect(() => {
     // Set click-through mode
     // Disable click-through when:
-    // - Settings is open
-    // - Mouse is hovering over UI elements
+    // - Settings is open (need to interact with settings)
+    // - Mouse is hovering over any UI element (buttons, dice, panels)
+    // Click-through works on empty areas, UI elements remain clickable
     if (window.electronAPI) {
       const shouldClickThrough = state.clickThrough && !state.showSettings && !isMouseOverUI;
       window.electronAPI.setClickThrough(shouldClickThrough);
@@ -254,6 +255,8 @@ const App: React.FC = () => {
           selectedDie: die,
           isDiceVisible: true,
           result: null,
+          multiTotal: null,
+          multiBreakdown: [],
         };
       }
 
@@ -263,7 +266,15 @@ const App: React.FC = () => {
 
   const handleHideCenterDice = () => {
     if (state.isRolling) return;
-    setState((prev) => ({ ...prev, isDiceVisible: false }));
+    setState((prev) => ({
+      ...prev,
+      isDiceVisible: false,
+      result: null,
+      multiTotal: null,
+      multiBreakdown: [],
+    }));
+    // Reset mouse over state so click-through can work immediately
+    setIsMouseOverUI(false);
   };
 
   const handleToggleMultiMode = () => {
@@ -426,7 +437,7 @@ const App: React.FC = () => {
               </button>
 
               <Dice3D
-                result={state.result}
+                result={state.result ?? state.multiTotal}
                 isRolling={state.isRolling}
                 animationSpeed={state.animationSpeed}
                 onRoll={handleRoll}
@@ -436,41 +447,39 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Result Display */}
-          {!state.isMultiMode &&
-            state.isDiceVisible &&
-            state.result &&
-            !state.isRolling && (
+          {/* Result Display - Single dice mode */}
+          {state.result &&
+            !state.isRolling &&
+            state.multiTotal === null && (
               <div className="mt-4 text-7xl font-black text-blue-400 result-text">
                 {state.result}
               </div>
             )}
 
-          {state.isMultiMode && state.isDiceVisible && (
-            <>
-              {selectionLabel && (
-                <div className="mt-4 px-4 py-2 rounded-lg ui-panel text-lg text-blue-400 font-bold tracking-wide">
-                  {selectionLabel}
-                </div>
-              )}
+          {/* Result Display - Multi dice mode (shows even after mode exits) */}
+          {state.multiTotal !== null && !state.isRolling && (
+            <div className="mt-4 text-7xl font-black text-blue-400 result-text">
+              {state.multiTotal}
+            </div>
+          )}
 
-              {state.multiTotal !== null && !state.isRolling && (
-                <div className="mt-3 text-6xl font-black text-blue-400 result-text">
-                  {state.multiTotal}
+          {/* Multi breakdown details */}
+          {state.multiBreakdown.length > 0 && !state.isRolling && (
+            <div className="mt-3 px-4 py-2 rounded-lg ui-panel text-sm text-white text-center space-y-1">
+              {state.multiBreakdown.map((entry) => (
+                <div key={entry.type} className="breakdown-text">
+                  <span className="font-bold text-blue-400">{entry.type}:</span>{" "}
+                  <span className="text-white">{entry.results.join(", ")}</span>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
 
-              {state.multiBreakdown.length > 0 && !state.isRolling && (
-                <div className="mt-3 px-4 py-2 rounded-lg ui-panel text-sm text-white text-center space-y-1">
-                  {state.multiBreakdown.map((entry) => (
-                    <div key={entry.type} className="breakdown-text">
-                      <span className="font-bold text-blue-400">{entry.type}:</span>{" "}
-                      <span className="text-white">{entry.results.join(", ")}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+          {/* Multi mode selection label */}
+          {state.isMultiMode && selectionLabel && (
+            <div className="mt-4 px-4 py-2 rounded-lg ui-panel text-lg text-blue-400 font-bold tracking-wide">
+              {selectionLabel}
+            </div>
           )}
 
           {/* Roll Button */}

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
+import { PerspectiveCamera, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 type DiceSize = 'small' | 'medium' | 'large' | 'xl';
@@ -174,6 +174,36 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
           emissive="#1e40af"
           emissiveIntensity={0.2}
         />
+        
+        {/* Result number displayed on the dice */}
+        {result !== null && !isRolling && (
+          <Html
+            center
+            distanceFactor={3}
+            style={{
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '2.5rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                textShadow: `
+                  0 0 10px rgba(59, 130, 246, 1),
+                  0 0 20px rgba(59, 130, 246, 0.8),
+                  0 0 30px rgba(59, 130, 246, 0.6),
+                  2px 2px 4px rgba(0, 0, 0, 1),
+                  -2px -2px 4px rgba(0, 0, 0, 1)
+                `,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+              }}
+            >
+              {result}
+            </div>
+          </Html>
+        )}
       </mesh>
       
       {/* Wireframe overlay */}
