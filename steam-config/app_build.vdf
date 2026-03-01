@@ -1,0 +1,47 @@
+"appbuild"
+{
+	// ============================================
+	// STEAM APP BUILD CONFIGURATION
+	// D20 Dice Roller
+	// ============================================
+	
+	// TODO: Replace YOUR_APP_ID with your actual Steam App ID
+	"appid"	"YOUR_APP_ID"
+	
+	// Build description (shown in Steamworks)
+	"desc"	"D20 Dice Roller v1.0.0"
+	
+	// Output directory for build logs
+	"buildoutput"	"./output/"
+	
+	// Root content directory (relative to this file)
+	"contentroot"	"../steam-builds/"
+	
+	// Branch to set live after successful upload
+	// Options: "default", "beta", "internal", or leave empty for manual
+	"setlive"	""
+	
+	// Preview mode - set to 1 to test without uploading
+	"preview"	"0"
+	
+	// Local content server (leave empty for normal upload)
+	"local"	""
+	
+	// ============================================
+	// DEPOT CONFIGURATIONS
+	// ============================================
+	"depots"
+	{
+		// Windows Depot
+		// TODO: Replace YOUR_DEPOT_ID_WIN with your Windows depot ID
+		"YOUR_DEPOT_ID_WIN"	"depot_win.vdf"
+		
+		// macOS Depot (uncomment when macOS build is ready)
+		// TODO: Replace YOUR_DEPOT_ID_MAC with your macOS depot ID
+		// "YOUR_DEPOT_ID_MAC"	"depot_mac.vdf"
+		
+		// Linux Depot
+		// TODO: Replace YOUR_DEPOT_ID_LINUX with your Linux depot ID
+		"YOUR_DEPOT_ID_LINUX"	"depot_linux.vdf"
+	}
+}

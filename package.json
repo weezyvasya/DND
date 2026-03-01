@@ -9,11 +9,26 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "make:win": "npm run build && electron-forge make --platform=win32 --arch=x64",
     "build": "vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.renderer.config.ts",
     "dev": "vite --config vite.renderer.config.ts",
-    "clean": "rm -rf .vite out || true",
-    "quick-installer": "npm run clean && npm run build && npm run make:win"
+    "clean": "node -e \"const fs=require('fs');['.vite','out'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch(e){}})\"",
+    "clean:all": "npm run clean && node -e \"const fs=require('fs');['steam-builds'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch(e){}})\"",
+    
+    "make:win": "npm run build && electron-forge make --platform=win32 --arch=x64",
+    "make:mac": "npm run build && electron-forge make --platform=darwin --arch=universal",
+    "make:mac-x64": "npm run build && electron-forge make --platform=darwin --arch=x64",
+    "make:mac-arm64": "npm run build && electron-forge make --platform=darwin --arch=arm64",
+    "make:linux": "npm run build && electron-forge make --platform=linux --arch=x64",
+    "make:all": "npm run make:win && npm run make:mac && npm run make:linux",
+    
+    "steam:prepare": "npm run clean && npm run build && npm run steam:build-all && npm run steam:organize",
+    "steam:build-all": "npm run make:win && npm run make:linux",
+    "steam:organize": "node scripts/organize-steam-builds.js",
+    
+    "quick-installer": "npm run clean && npm run build && npm run make:win",
+    "package:win": "electron-forge package --platform=win32 --arch=x64",
+    "package:mac": "electron-forge package --platform=darwin --arch=universal",
+    "package:linux": "electron-forge package --platform=linux --arch=x64"
   },
   "author": {
     "name": "Vasiliy",
@@ -22,6 +37,9 @@
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^7.2.0",
+    "@electron-forge/maker-deb": "^7.2.0",
+    "@electron-forge/maker-dmg": "^7.2.0",
+    "@electron-forge/maker-rpm": "^7.2.0",
     "@electron-forge/maker-squirrel": "^7.2.0",
     "@electron-forge/maker-zip": "^7.2.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.2.0",
@@ -52,58 +70,5 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "three": "^0.160.0"
-  },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "asar": false,
-        "name": "D20 Dice Roller",
-        "executableName": "d20-dice-roller",
-        "win32metadata": {
-          "CompanyName": "D20 Dice Roller",
-          "FileDescription": "Transparent D20 dice roller for tabletop games",
-          "ProductName": "D20 Dice Roller"
-        }
-      },
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "d20_dice_roller",
-            "authors": "Vasiliy",
-            "noMsi": true
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "win32"
-          ]
-        }
-      ],
-      "plugins": [
-        {
-          "name": "@electron-forge/plugin-vite",
-          "config": {
-            "build": [
-              {
-                "entry": "src/main/main.ts",
-                "config": "vite.main.config.ts"
-              },
-              {
-                "entry": "src/preload/preload.ts",
-                "config": "vite.preload.config.ts"
-              }
-            ],
-            "renderer": [
-              {
-                "name": "main_window",
-                "config": "vite.renderer.config.ts"
-              }
-            ]
-          }
-        }
-      ]
-    }
   }
 }

@@ -1,0 +1,33 @@
+"DepotBuildConfig"
+{
+	// ============================================
+	// MACOS DEPOT CONFIGURATION
+	// D20 Dice Roller - macOS Universal (Intel + Apple Silicon)
+	// ============================================
+	
+	// TODO: Replace YOUR_DEPOT_ID_MAC with your actual macOS depot ID
+	"DepotID"	"YOUR_DEPOT_ID_MAC"
+	
+	// Content root (relative to app_build.vdf contentroot)
+	"contentroot"	"macos/"
+	
+	// File mappings
+	"FileMapping"
+	{
+		// Include all files from the macOS build
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+	
+	// File exclusions (optional)
+	"FileExclusion"
+	{
+		// Exclude development files
+		"*.dsym"
+		".DS_Store"
+		"*.log"
+		".gitignore"
+		"README.md"
+	}
+}

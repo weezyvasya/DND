@@ -1,0 +1,31 @@
+"DepotBuildConfig"
+{
+	// ============================================
+	// LINUX DEPOT CONFIGURATION
+	// D20 Dice Roller - Linux x64
+	// ============================================
+	
+	// TODO: Replace YOUR_DEPOT_ID_LINUX with your actual Linux depot ID
+	"DepotID"	"YOUR_DEPOT_ID_LINUX"
+	
+	// Content root (relative to app_build.vdf contentroot)
+	"contentroot"	"linux/"
+	
+	// File mappings
+	"FileMapping"
+	{
+		// Include all files from the Linux build
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+	
+	// File exclusions (optional)
+	"FileExclusion"
+	{
+		// Exclude development files
+		"*.log"
+		".gitignore"
+		"README.md"
+	}
+}

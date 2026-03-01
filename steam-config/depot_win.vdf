@@ -1,0 +1,33 @@
+"DepotBuildConfig"
+{
+	// ============================================
+	// WINDOWS DEPOT CONFIGURATION
+	// D20 Dice Roller - Windows x64
+	// ============================================
+	
+	// TODO: Replace YOUR_DEPOT_ID_WIN with your actual Windows depot ID
+	"DepotID"	"YOUR_DEPOT_ID_WIN"
+	
+	// Content root (relative to app_build.vdf contentroot)
+	"contentroot"	"windows/"
+	
+	// File mappings
+	"FileMapping"
+	{
+		// Include all files from the Windows build
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"recursive"	"1"
+	}
+	
+	// File exclusions (optional)
+	"FileExclusion"
+	{
+		// Exclude development files
+		"*.pdb"
+		"*.map"
+		"*.log"
+		".gitignore"
+		"README.md"
+	}
+}
