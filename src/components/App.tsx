@@ -27,6 +27,9 @@ const App: React.FC = () => {
     updateSettings,
     handleMouseEnterUI,
     handleMouseLeaveUI,
+    screenSize,
+    isMaximized,
+    toggleMaximize,
   } = useSettings();
 
   // Dice roller hook
@@ -202,6 +205,8 @@ const App: React.FC = () => {
             onSettings={() => setShowSettings(true)}
             isMultiMode={selection.isMultiMode}
             onToggleMulti={selection.toggleMultiMode}
+            isMaximized={isMaximized}
+            onMaximize={toggleMaximize}
           />
         </div>
 
@@ -213,6 +218,9 @@ const App: React.FC = () => {
               opacity={settings.opacity}
               animationSpeed={settings.animationSpeed}
               diceSize={settings.diceSize}
+              windowWidth={settings.windowWidth}
+              windowHeight={settings.windowHeight}
+              screenSize={screenSize}
               onUpdate={updateSettings}
               onClose={() => setShowSettings(false)}
             />

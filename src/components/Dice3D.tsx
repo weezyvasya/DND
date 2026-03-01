@@ -262,6 +262,7 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
           <Html
             center
             distanceFactor={3.5}
+            zIndexRange={[0, 40]}
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
             <div

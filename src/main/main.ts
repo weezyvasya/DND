@@ -4,19 +4,32 @@ import path from 'path';
 let mainWindow: BrowserWindow | null = null;
 
 const createWindow = (): void => {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  
+  // Default window size (can be changed via settings)
+  const defaultWidth = 500;
+  const defaultHeight = 600;
+  
+  // Center the window
+  const x = Math.round((screenWidth - defaultWidth) / 2);
+  const y = Math.round((screenHeight - defaultHeight) / 2);
   
   mainWindow = new BrowserWindow({
-    width: width,
-    height: height,
-    x: 0,
-    y: 0,
+    width: defaultWidth,
+    height: defaultHeight,
+    x: x,
+    y: y,
+    minWidth: 300,
+    minHeight: 400,
+    maxWidth: screenWidth,
+    maxHeight: screenHeight,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
     hasShadow: false,
     skipTaskbar: false,
-    resizable: false,
+    resizable: true,
+    movable: true,
     minimizable: true,
     maximizable: false,
     closable: true,
@@ -78,6 +91,50 @@ const createWindow = (): void => {
 
   ipcMain.handle('get-opacity', () => {
     return mainWindow ? mainWindow.getOpacity() : 1.0;
+  });
+
+  ipcMain.handle('set-window-size', (event, width: number, height: number) => {
+    if (mainWindow) {
+      mainWindow.setSize(Math.round(width), Math.round(height));
+    }
+  });
+
+  ipcMain.handle('get-window-size', () => {
+    if (mainWindow) {
+      const [width, height] = mainWindow.getSize();
+      return { width, height };
+    }
+    return { width: 500, height: 600 };
+  });
+
+  ipcMain.handle('get-screen-size', () => {
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    return { width, height };
+  });
+
+  ipcMain.handle('center-window', () => {
+    if (mainWindow) {
+      mainWindow.center();
+    }
+  });
+
+  ipcMain.handle('maximize-window', () => {
+    if (mainWindow) {
+      const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+      mainWindow.setSize(screenWidth, screenHeight);
+      mainWindow.setPosition(0, 0);
+      return { width: screenWidth, height: screenHeight };
+    }
+    return null;
+  });
+
+  ipcMain.handle('is-maximized', () => {
+    if (mainWindow) {
+      const [width, height] = mainWindow.getSize();
+      const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+      return width >= screenWidth - 10 && height >= screenHeight - 10;
+    }
+    return false;
   });
 };
 

@@ -239,7 +239,7 @@ const SingleDiceMesh: React.FC<SingleDiceMeshProps> = ({
       />
       {/* Always show result when available */}
       {result !== null && (
-        <Html center distanceFactor={3} style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        <Html center distanceFactor={3} zIndexRange={[0, 40]} style={{ pointerEvents: 'none', userSelect: 'none' }}>
           <div style={{
             fontSize: isRolling ? '1.3rem' : '1.8rem',
             fontWeight: 900,

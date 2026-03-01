@@ -26,6 +26,8 @@ export interface AppSettings {
   opacity: number;
   animationSpeed: number;
   diceSize: DiceSize;
+  windowWidth: number;
+  windowHeight: number;
 }
 
 // Constants

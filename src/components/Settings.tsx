@@ -7,11 +7,16 @@ interface SettingsProps {
   opacity: number;
   animationSpeed: number;
   diceSize: DiceSize;
+  windowWidth: number;
+  windowHeight: number;
+  screenSize: { width: number; height: number };
   onUpdate: (updates: {
     clickThrough?: boolean;
     opacity?: number;
     animationSpeed?: number;
     diceSize?: DiceSize;
+    windowWidth?: number;
+    windowHeight?: number;
   }) => void;
   onClose: () => void;
 }
@@ -21,6 +26,9 @@ const Settings: React.FC<SettingsProps> = ({
   opacity,
   animationSpeed,
   diceSize,
+  windowWidth,
+  windowHeight,
+  screenSize,
   onUpdate,
   onClose,
 }) => {
@@ -28,6 +36,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [localOpacity, setLocalOpacity] = useState(opacity);
   const [localAnimationSpeed, setLocalAnimationSpeed] = useState(animationSpeed);
   const [localDiceSize, setLocalDiceSize] = useState<DiceSize>(diceSize);
+  const [localWidth, setLocalWidth] = useState(windowWidth);
+  const [localHeight, setLocalHeight] = useState(windowHeight);
 
   const handleClickThroughChange = (value: boolean) => {
     setLocalClickThrough(value);
@@ -47,6 +57,22 @@ const Settings: React.FC<SettingsProps> = ({
   const handleDiceSizeChange = (value: DiceSize) => {
     setLocalDiceSize(value);
     onUpdate({ diceSize: value });
+  };
+
+  const handleWidthChange = (value: number) => {
+    setLocalWidth(value);
+    onUpdate({ windowWidth: value });
+  };
+
+  const handleHeightChange = (value: number) => {
+    setLocalHeight(value);
+    onUpdate({ windowHeight: value });
+  };
+
+  const handleCenterWindow = () => {
+    if (window.electronAPI) {
+      window.electronAPI.centerWindow();
+    }
   };
 
   return (
@@ -153,6 +179,56 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <p className="text-xs text-white/60 mt-1">
               Controls the visual size of the dice while rolling
+            </p>
+          </div>
+
+          {/* Separator */}
+          <div className="border-t border-white/10 pt-4">
+            <h3 className="text-sm font-semibold text-white/80 mb-3">Window Size</h3>
+          </div>
+
+          {/* Window Width Slider */}
+          <div>
+            <label className="block mb-2">
+              <span className="text-white">Width: {localWidth}px</span>
+            </label>
+            <input
+              type="range"
+              min="300"
+              max={screenSize.width}
+              step="10"
+              value={localWidth}
+              onChange={(e) => handleWidthChange(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-600"
+            />
+          </div>
+
+          {/* Window Height Slider */}
+          <div>
+            <label className="block mb-2">
+              <span className="text-white">Height: {localHeight}px</span>
+            </label>
+            <input
+              type="range"
+              min="400"
+              max={screenSize.height}
+              step="10"
+              value={localHeight}
+              onChange={(e) => handleHeightChange(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-600"
+            />
+          </div>
+
+          {/* Center Window Button */}
+          <div>
+            <button
+              onClick={handleCenterWindow}
+              className="w-full px-4 py-2 bg-green-600/80 hover:bg-green-500/80 text-white rounded-lg transition-colors font-medium"
+            >
+              Center Window
+            </button>
+            <p className="text-xs text-white/60 mt-1">
+              Move window to center of screen
             </p>
           </div>
         </div>
