@@ -1,532 +1,228 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import Dice3D from "./Dice3D";
-import Controls from "./Controls";
-import Settings from "./Settings";
-import RollHistory from "./RollHistory";
-import RollButton from "./RollButton";
-import { soundManager } from "../utils/sound";
+import React, { useEffect, useCallback } from 'react';
+import { useDiceRoller, useSettings, useDiceSelection } from '../hooks';
+import { DiceData, createEmptySelection } from '../types';
 
-type DiceType = "d3" | "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
-type DiceSize = "small" | "medium" | "large" | "xl";
-
-const DICE_TYPES: { id: DiceType; label: string }[] = [
-  { id: "d3", label: "d3" },
-  { id: "d4", label: "d4" },
-  { id: "d6", label: "d6" },
-  { id: "d8", label: "d8" },
-  { id: "d10", label: "d10" },
-  { id: "d12", label: "d12" },
-  { id: "d20", label: "d20" },
-];
-
-const getSidesForDie = (type: DiceType): number => {
-  switch (type) {
-    case "d3":
-      return 3;
-    case "d4":
-      return 4;
-    case "d6":
-      return 6;
-    case "d8":
-      return 8;
-    case "d10":
-      return 10;
-    case "d12":
-      return 12;
-    case "d20":
-    default:
-      return 20;
-  }
-};
-
-interface AppState {
-  isRolling: boolean;
-  result: number | null;
-  rollHistory: number[];
-  clickThrough: boolean;
-  opacity: number;
-  animationSpeed: number;
-  showSettings: boolean;
-  selectedDie: DiceType;
-  diceSize: DiceSize;
-  isDiceVisible: boolean;
-  isMultiMode: boolean;
-  multiSelection: Record<DiceType, number>;
-  multiTotal: number | null;
-  multiBreakdown: { type: DiceType; count: number; results: number[] }[];
-}
+import DiceSelector from './DiceSelector';
+import RollModeToggle from './RollModeToggle';
+import { SingleDiceArea, MultiDiceArea } from './DiceArea';
+import { 
+  PhaseIndicator, 
+  SingleResult, 
+  AdvantageResult, 
+  MultiTotal, 
+  MultiBreakdown, 
+  SelectionLabel 
+} from './ResultDisplay';
+import Controls from './Controls';
+import Settings from './Settings';
+import RollHistory from './RollHistory';
+import RollButton from './RollButton';
 
 const App: React.FC = () => {
-  const [state, setState] = useState<AppState>({
-    isRolling: false,
-    result: null,
-    rollHistory: [],
-    clickThrough: false,
-    opacity: 1.0,
-    animationSpeed: 1.0,
-    showSettings: false,
-    selectedDie: "d20",
-    diceSize: "medium",
-    isDiceVisible: true,
-    isMultiMode: false,
-    multiSelection: {
-      d3: 0,
-      d4: 0,
-      d6: 0,
-      d8: 0,
-      d10: 0,
-      d12: 0,
-      d20: 0,
-    },
-    multiTotal: null,
-    multiBreakdown: [],
-  });
+  // Settings hook
+  const {
+    settings,
+    showSettings,
+    setShowSettings,
+    updateSettings,
+    handleMouseEnterUI,
+    handleMouseLeaveUI,
+  } = useSettings();
 
-  // Track if mouse is over interactive UI elements
-  const [isMouseOverUI, setIsMouseOverUI] = useState(false);
+  // Dice roller hook
+  const roller = useDiceRoller(settings.animationSpeed * 2000);
 
-  useEffect(() => {
-    // Initialize opacity from Electron
-    const initOpacity = async () => {
-      if (window.electronAPI) {
-        const currentOpacity = await window.electronAPI.getOpacity();
-        setState((prev) => ({ ...prev, opacity: currentOpacity }));
-      }
-    };
-    initOpacity();
-  }, []);
+  // Selection hook
+  const selection = useDiceSelection(roller.isRolling, roller.clearAllResults);
 
-  useEffect(() => {
-    // Set click-through mode
-    // Disable click-through when:
-    // - Settings is open (need to interact with settings)
-    // - Mouse is hovering over any UI element (buttons, dice, panels)
-    // Click-through works on empty areas, UI elements remain clickable
-    if (window.electronAPI) {
-      const shouldClickThrough = state.clickThrough && !state.showSettings && !isMouseOverUI;
-      window.electronAPI.setClickThrough(shouldClickThrough);
-    }
-  }, [state.clickThrough, state.showSettings, isMouseOverUI]);
-
-  // Handlers for mouse enter/leave on interactive areas
-  const handleMouseEnterUI = useCallback(() => {
-    setIsMouseOverUI(true);
-  }, []);
-
-  const handleMouseLeaveUI = useCallback(() => {
-    setIsMouseOverUI(false);
-  }, []);
-
-  useEffect(() => {
-    // Set window opacity
-    if (window.electronAPI) {
-      window.electronAPI.setOpacity(state.opacity);
-    }
-  }, [state.opacity]);
-
+  // Handle roll action
   const handleRoll = useCallback(() => {
-    if (state.isRolling) return;
+    roller.startRoll({
+      selectedDie: selection.selectedDie,
+      isMultiMode: selection.isMultiMode,
+      multiSelection: selection.multiSelection,
+      rollMode: selection.rollMode,
+      onComplete: selection.resetMultiSelection,
+    });
+  }, [roller, selection]);
 
-    const { isMultiMode, selectedDie, multiSelection } = state;
-
-    // Play dice rolling sound
-    soundManager.playDiceRoll();
-
-    setState((prev) => ({ ...prev, isRolling: true }));
-
-    // Roll animation duration (2-3 seconds)
-    const animationDuration = 2000 + Math.random() * 1000;
-
-    setTimeout(() => {
-      if (!isMultiMode) {
-        const sides = getSidesForDie(selectedDie);
-        const newResult = Math.floor(Math.random() * sides) + 1;
-        setState((prev) => ({
-          ...prev,
-          result: newResult,
-          isRolling: false,
-          // keep history as single values
-          rollHistory: [newResult, ...prev.rollHistory].slice(0, 5),
-          // clear multi-specific results when in single mode
-          multiTotal: null,
-          multiBreakdown: [],
-        }));
-      } else {
-        const entries = Object.entries(multiSelection).filter(
-          ([, count]) => count > 0,
-        ) as [DiceType, number][];
-
-        if (entries.length === 0) {
-          // nothing selected, just stop rolling
-          setState((prev) => ({ ...prev, isRolling: false }));
-          return;
-        }
-
-        let total = 0;
-        const breakdown: {
-          type: DiceType;
-          count: number;
-          results: number[];
-        }[] = [];
-
-        entries.forEach(([type, count]) => {
-          const sides = getSidesForDie(type);
-          const results: number[] = [];
-          for (let i = 0; i < count; i += 1) {
-            const roll = Math.floor(Math.random() * sides) + 1;
-            results.push(roll);
-            total += roll;
-          }
-          breakdown.push({ type, count, results });
-        });
-
-        setState((prev) => ({
-          ...prev,
-          isRolling: false,
-          result: null,
-          multiTotal: total,
-          multiBreakdown: breakdown,
-          rollHistory: [total, ...prev.rollHistory].slice(0, 5),
-          // Auto-switch back to normal mode after multi roll
-          isMultiMode: false,
-          // Reset multi selection counts
-          multiSelection: {
-            d3: 0,
-            d4: 0,
-            d6: 0,
-            d8: 0,
-            d10: 0,
-            d12: 0,
-            d20: 0,
-          },
-        }));
-      }
-    }, animationDuration);
-  }, [
-    state.isRolling,
-    state.isMultiMode,
-    state.selectedDie,
-    state.multiSelection,
-  ]);
-
+  // Keyboard shortcut
   useEffect(() => {
-    // Keyboard shortcut for rolling (Spacebar)
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !state.isRolling && !state.showSettings) {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !roller.isRolling && !showSettings) {
         e.preventDefault();
         handleRoll();
       }
     };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [roller.isRolling, showSettings, handleRoll]);
 
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [state.isRolling, state.showSettings, handleRoll]);
-
-  const handleClose = () => {
-    if (window.electronAPI) {
-      window.electronAPI.closeApp();
-    }
+  // Close app handler
+  const handleCloseApp = () => {
+    if (window.electronAPI) window.electronAPI.closeApp();
   };
 
-  const toggleSettings = () => {
-    setState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
+  // Close dice handler (also clears results)
+  const handleCloseDice = useCallback(() => {
+    selection.hideDice();
+    handleMouseLeaveUI();
+  }, [selection, handleMouseLeaveUI]);
+
+  // Computed display conditions
+  const hasMultiResults = roller.multiDiceData.length > 0 && 
+    roller.multiDiceData.some(d => d.result !== null);
+  const showMultiDice = (selection.isMultiMode && selection.totalDiceCount > 0) || hasMultiResults;
+  const showSingleDice = !showMultiDice && selection.isDiceVisible;
+  
+  // Generate dice data for display
+  const getDiceData = (): DiceData[] => {
+    if (roller.multiDiceData.length > 0) return roller.multiDiceData;
+    
+    const data: DiceData[] = [];
+    let idx = 0;
+    (Object.entries(selection.multiSelection) as [string, number][])
+      .filter(([, count]) => count > 0)
+      .forEach(([type, count]) => {
+        for (let i = 0; i < count; i++) {
+          data.push({ type: type as any, result: null, id: `${type}-${idx++}` });
+        }
+      });
+    return data;
   };
 
-  const updateSettings = (
-    updates: Partial<
-      Pick<AppState, "clickThrough" | "opacity" | "animationSpeed" | "diceSize">
-    >,
-  ) => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
-
-  const handleSelectDie = (die: DiceType) => {
-    if (state.isRolling) return;
-    setState((prev) => {
-      // If hidden, reselecting the same die shows it again
-      if (!prev.isDiceVisible && prev.selectedDie === die) {
-        return { ...prev, isDiceVisible: true };
-      }
-
-      // Selecting any die shows the center dice
-      if (prev.selectedDie !== die) {
-        return {
-          ...prev,
-          selectedDie: die,
-          isDiceVisible: true,
-          result: null,
-          multiTotal: null,
-          multiBreakdown: [],
-        };
-      }
-
-      return prev;
-    });
-  };
-
-  const handleHideCenterDice = () => {
-    if (state.isRolling) return;
-    setState((prev) => ({
-      ...prev,
-      isDiceVisible: false,
-      result: null,
-      multiTotal: null,
-      multiBreakdown: [],
-    }));
-    // Reset mouse over state so click-through can work immediately
-    setIsMouseOverUI(false);
-  };
-
-  const handleToggleMultiMode = () => {
-    setState((prev) => ({
-      ...prev,
-      isMultiMode: !prev.isMultiMode,
-      // when leaving multi mode, keep selection but clear multi results from UI
-      ...(prev.isMultiMode ? { multiTotal: null, multiBreakdown: [] } : null),
-    }));
-  };
-
-  const handleIncrementDie = (die: DiceType) => {
-    setState((prev) => ({
-      ...prev,
-      multiSelection: {
-        ...prev.multiSelection,
-        [die]: prev.multiSelection[die] + 1,
-      },
-      // make this die the focused one visually
-      selectedDie: prev.selectedDie,
-    }));
-  };
-
-  const handleDecrementDie = (die: DiceType) => {
-    setState((prev) => {
-      const current = prev.multiSelection[die];
-      const nextCount = current > 0 ? current - 1 : 0;
-      if (nextCount === current) return prev;
-      return {
-        ...prev,
-        multiSelection: {
-          ...prev.multiSelection,
-          [die]: nextCount,
-        },
-      };
-    });
-  };
-
-  const handleDieIconClick = (die: DiceType) => {
-    if (!state.isMultiMode) {
-      handleSelectDie(die);
-    } else {
-      // In multi mode, clicking the icon increments that die and focuses it
-      setState((prev) => ({
-        ...prev,
-        selectedDie: die,
-        isDiceVisible: true,
-        multiSelection: {
-          ...prev.multiSelection,
-          [die]: prev.multiSelection[die] + 1,
-        },
-      }));
-    }
-  };
-
-  const activeMultiEntries = Object.entries(state.multiSelection).filter(
-    ([, count]) => count > 0,
-  ) as [DiceType, number][];
-
-  const selectionLabel =
-    activeMultiEntries.length > 0
-      ? activeMultiEntries.map(([type, count]) => `${count}${type}`).join(" + ")
-      : "";
+  // Show conditions
+  const showPhase = selection.rollMode !== 'normal' && roller.currentPhase > 0;
+  const showNormalResult = selection.rollMode === 'normal' && 
+    roller.singleResult !== null && 
+    !roller.isRolling && 
+    !showMultiDice;
+  const showAdvantageResult = selection.rollMode !== 'normal' && 
+    !roller.isRolling && 
+    roller.finalResult !== null && 
+    !showMultiDice;
 
   return (
-    <div
-      className="w-full h-full flex items-center justify-center bg-transparent"
-      style={{ opacity: state.opacity }}
-    >
+    <div className="w-full h-full flex items-center justify-center bg-transparent" 
+         style={{ opacity: settings.opacity }}>
       <div className="relative w-full h-full flex flex-col items-center justify-center draggable-area">
-        {/* Dice type selector */}
-        <div 
-          className="absolute top-4 left-4 flex gap-2 z-40 flex-wrap max-w-[420px] p-3 rounded-xl ui-panel"
-          onMouseEnter={handleMouseEnterUI}
-          onMouseLeave={handleMouseLeaveUI}
-        >
-          {DICE_TYPES.map((die) => {
-            const isActive = state.selectedDie === die.id;
-            const count = state.multiSelection[die.id];
-            return (
-              <div
-                key={die.id}
-                className={`flex items-center rounded-lg border-2 transition-all ${
-                  isActive
-                    ? "bg-blue-600/90 border-blue-400 shadow-lg shadow-blue-500/30"
-                    : "bg-gray-800/80 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500"
-                }`}
-              >
-                {/* Minus button (only in multi mode) */}
-                {state.isMultiMode && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDecrementDie(die.id);
-                    }}
-                    className={`w-6 h-8 flex items-center justify-center text-sm font-bold rounded-l-md transition-colors ${
-                      count > 0
-                        ? "text-white hover:bg-red-500/40"
-                        : "text-white/30 cursor-not-allowed"
-                    }`}
-                    disabled={count === 0}
-                  >
-                    −
-                  </button>
-                )}
-
-                {/* Dice label button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDieIconClick(die.id);
-                  }}
-                  className={`px-2 py-1.5 text-sm font-bold transition-colors ${
-                    isActive ? "text-white" : "text-white/80 hover:text-white"
-                  } ${state.isMultiMode ? "" : "rounded-lg"}`}
-                >
-                  {state.isMultiMode && count > 0 ? `${count}${die.label}` : die.label}
-                </button>
-
-                {/* Plus button (only in multi mode) */}
-                {state.isMultiMode && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleIncrementDie(die.id);
-                    }}
-                    className="w-6 h-8 flex items-center justify-center text-sm font-bold text-white hover:bg-green-500/40 rounded-r-md transition-colors"
-                  >
-                    +
-                  </button>
-                )}
-              </div>
-            );
-          })}
+        
+        {/* Dice Selector - Top Left */}
+        <div className="absolute top-4 left-4 z-40" 
+             onMouseEnter={handleMouseEnterUI} 
+             onMouseLeave={handleMouseLeaveUI}>
+          <DiceSelector
+            selectedDie={selection.selectedDie}
+            isMultiMode={selection.isMultiMode}
+            multiSelection={selection.multiSelection}
+            isRolling={roller.isRolling}
+            onSelectDie={selection.selectDie}
+            onIncrementDie={selection.incrementDie}
+            onDecrementDie={selection.decrementDie}
+          />
         </div>
 
-        {/* Main Dice Area */}
-        <div 
-          className="relative flex flex-col items-center justify-center"
-          onMouseEnter={handleMouseEnterUI}
-          onMouseLeave={handleMouseLeaveUI}
-        >
-          {state.isDiceVisible && (
-            <div className="relative flex flex-col items-center justify-center dice-container">
-              {/* Dice label */}
-              <div className="absolute -top-2 text-white text-lg font-bold tracking-wide dice-label uppercase">
-                {state.selectedDie}
-              </div>
+        {/* Roll Mode Toggle - Top Center */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40" 
+             onMouseEnter={handleMouseEnterUI} 
+             onMouseLeave={handleMouseLeaveUI}>
+          <RollModeToggle
+            currentMode={selection.rollMode}
+            onModeChange={selection.setRollMode}
+          />
+        </div>
 
-              {/* Close (hide) button on the centered dice */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleHideCenterDice();
-                }}
-                className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center bg-red-600/60 hover:bg-red-500/80 rounded-full text-white transition-colors backdrop-blur-sm z-50 border border-red-400/50"
-                title="Hide"
-              >
-                ✕
-              </button>
+        {/* Main Dice Area - Center */}
+        <div className="relative flex flex-col items-center justify-center"
+             onMouseEnter={handleMouseEnterUI} 
+             onMouseLeave={handleMouseLeaveUI}>
+          
+          {showPhase && <PhaseIndicator phase={roller.currentPhase} />}
 
-              <Dice3D
-                result={state.result ?? state.multiTotal}
-                isRolling={state.isRolling}
-                animationSpeed={state.animationSpeed}
-                onRoll={handleRoll}
-                sides={getSidesForDie(state.selectedDie)}
-                size={state.diceSize}
-              />
-            </div>
+          {showMultiDice && selection.isDiceVisible && (
+            <MultiDiceArea
+              diceData={getDiceData()}
+              isRolling={roller.isRolling}
+              animationSpeed={settings.animationSpeed}
+              onRoll={handleRoll}
+              onClose={handleCloseDice}
+            />
           )}
 
-          {/* Result Display - Single dice mode */}
-          {state.result &&
-            !state.isRolling &&
-            state.multiTotal === null && (
-              <div className="mt-4 text-7xl font-black text-blue-400 result-text">
-                {state.result}
-              </div>
-            )}
-
-          {/* Result Display - Multi dice mode (shows even after mode exits) */}
-          {state.multiTotal !== null && !state.isRolling && (
-            <div className="mt-4 text-7xl font-black text-blue-400 result-text">
-              {state.multiTotal}
-            </div>
+          {showSingleDice && (
+            <SingleDiceArea
+              selectedDie={selection.selectedDie}
+              result={roller.singleResult}
+              isRolling={roller.isRolling}
+              animationSpeed={settings.animationSpeed}
+              diceSize={settings.diceSize}
+              onRoll={handleRoll}
+              onClose={handleCloseDice}
+            />
           )}
 
-          {/* Multi breakdown details */}
-          {state.multiBreakdown.length > 0 && !state.isRolling && (
-            <div className="mt-3 px-4 py-2 rounded-lg ui-panel text-sm text-white text-center space-y-1">
-              {state.multiBreakdown.map((entry) => (
-                <div key={entry.type} className="breakdown-text">
-                  <span className="font-bold text-blue-400">{entry.type}:</span>{" "}
-                  <span className="text-white">{entry.results.join(", ")}</span>
-                </div>
-              ))}
-            </div>
+          {showAdvantageResult && roller.roll1 !== null && roller.roll2 !== null && (
+            <AdvantageResult
+              roll1={roller.roll1}
+              roll2={roller.roll2}
+              finalResult={roller.finalResult!}
+              mode={selection.rollMode}
+            />
           )}
 
-          {/* Multi mode selection label */}
-          {state.isMultiMode && selectionLabel && (
-            <div className="mt-4 px-4 py-2 rounded-lg ui-panel text-lg text-blue-400 font-bold tracking-wide">
-              {selectionLabel}
-            </div>
+          {showNormalResult && <SingleResult result={roller.singleResult!} />}
+
+          {roller.multiTotal !== null && !roller.isRolling && (
+            <MultiTotal total={roller.multiTotal} />
           )}
 
-          {/* Roll Button */}
-          {state.isDiceVisible && (
-            <RollButton isRolling={state.isRolling} onRoll={handleRoll} />
+          {roller.multiBreakdown.length > 0 && !roller.isRolling && (
+            <MultiBreakdown
+              breakdown={roller.multiBreakdown}
+              diceData={roller.multiDiceData}
+              rollMode={selection.rollMode}
+            />
+          )}
+
+          {selection.isMultiMode && selection.selectionLabel && !roller.multiTotal && (
+            <SelectionLabel label={selection.selectionLabel} />
+          )}
+
+          {selection.isDiceVisible && (
+            <RollButton isRolling={roller.isRolling} onRoll={handleRoll} />
           )}
         </div>
 
-        {/* Controls */}
-        <div
-          onMouseEnter={handleMouseEnterUI}
-          onMouseLeave={handleMouseLeaveUI}
-        >
+        {/* Controls - Top Right */}
+        <div onMouseEnter={handleMouseEnterUI} onMouseLeave={handleMouseLeaveUI}>
           <Controls
-            isRolling={state.isRolling}
+            isRolling={roller.isRolling}
             onRoll={handleRoll}
-            onClose={handleClose}
-            onSettings={toggleSettings}
-            isMultiMode={state.isMultiMode}
-            onToggleMulti={handleToggleMultiMode}
+            onClose={handleCloseApp}
+            onSettings={() => setShowSettings(true)}
+            isMultiMode={selection.isMultiMode}
+            onToggleMulti={selection.toggleMultiMode}
           />
         </div>
 
         {/* Settings Panel */}
-        {state.showSettings && (
-          <div
-            onMouseEnter={handleMouseEnterUI}
-            onMouseLeave={handleMouseLeaveUI}
-          >
+        {showSettings && (
+          <div onMouseEnter={handleMouseEnterUI} onMouseLeave={handleMouseLeaveUI}>
             <Settings
-              clickThrough={state.clickThrough}
-              opacity={state.opacity}
-              animationSpeed={state.animationSpeed}
-              diceSize={state.diceSize}
+              clickThrough={settings.clickThrough}
+              opacity={settings.opacity}
+              animationSpeed={settings.animationSpeed}
+              diceSize={settings.diceSize}
               onUpdate={updateSettings}
-              onClose={toggleSettings}
+              onClose={() => setShowSettings(false)}
             />
           </div>
         )}
 
         {/* Roll History */}
-        {state.rollHistory.length > 0 && (
-          <div
-            onMouseEnter={handleMouseEnterUI}
-            onMouseLeave={handleMouseLeaveUI}
-          >
-            <RollHistory rolls={state.rollHistory} />
+        {roller.rollHistory.length > 0 && (
+          <div onMouseEnter={handleMouseEnterUI} onMouseLeave={handleMouseLeaveUI}>
+            <RollHistory rolls={roller.rollHistory} />
           </div>
         )}
       </div>
@@ -535,5 +231,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-//зайти на сайт тэйлвинд и попременять стили, изучить названия классов

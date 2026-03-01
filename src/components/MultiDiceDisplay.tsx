@@ -3,24 +3,27 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
-type DiceSize = 'small' | 'medium' | 'large' | 'xl';
+type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 
-interface Dice3DProps {
+interface DiceData {
+  type: DiceType;
   result: number | null;
+  id: string;
+}
+
+interface MultiDiceDisplayProps {
+  dice: DiceData[];
   isRolling: boolean;
   animationSpeed: number;
   onRoll: () => void;
-  sides: number;
-  size: DiceSize;
 }
 
-interface DiceMeshProps {
-  result: number | null;
-  isRolling: boolean;
-  animationSpeed: number;
-  onRoll: () => void;
-  sides: number;
-}
+const getSidesForDie = (type: DiceType): number => {
+  const map: Record<DiceType, number> = {
+    d3: 3, d4: 4, d6: 6, d8: 8, d10: 10, d12: 12, d20: 20
+  };
+  return map[type] || 20;
+};
 
 const createWoodTexture = (): THREE.CanvasTexture => {
   const canvas = document.createElement('canvas');
@@ -156,33 +159,39 @@ const createTrapezohedronD10Geometry = (): THREE.BufferGeometry => {
 
 const createGeometryForSides = (sides: number): THREE.BufferGeometry => {
   switch (sides) {
-    case 3: return new THREE.CylinderGeometry(1, 1, 0.9, 3, 1);
-    case 4: return new THREE.TetrahedronGeometry(1.2, 0);
-    case 6: return new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    case 8: return new THREE.OctahedronGeometry(1.1, 0);
+    case 3: return new THREE.CylinderGeometry(0.8, 0.8, 0.7, 3, 1);
+    case 4: return new THREE.TetrahedronGeometry(0.9, 0);
+    case 6: return new THREE.BoxGeometry(1.2, 1.2, 1.2);
+    case 8: return new THREE.OctahedronGeometry(0.9, 0);
     case 10: return createTrapezohedronD10Geometry();
-    case 12: return new THREE.DodecahedronGeometry(1.1, 0);
+    case 12: return new THREE.DodecahedronGeometry(0.9, 0);
     case 20:
-    default: return new THREE.IcosahedronGeometry(1.1, 0);
+    default: return new THREE.IcosahedronGeometry(0.9, 0);
   }
 };
 
-const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, onRoll, sides }) => {
+interface SingleDiceMeshProps {
+  sides: number;
+  result: number | null;
+  isRolling: boolean;
+  animationSpeed: number;
+  position: [number, number, number];
+  woodTexture: THREE.CanvasTexture;
+  bumpMap: THREE.CanvasTexture;
+}
+
+const SingleDiceMesh: React.FC<SingleDiceMeshProps> = ({ 
+  sides, result, isRolling, animationSpeed, position, woodTexture, bumpMap
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const rotationRef = useRef({ x: 0, y: 0, z: 0 });
+  const rotationRef = useRef({ x: Math.random() * Math.PI, y: Math.random() * Math.PI, z: 0 });
   const rotationVelocityRef = useRef({ x: 0, y: 0, z: 0 });
 
   const geometry = useMemo(() => createGeometryForSides(sides), [sides]);
-  const woodTexture = useMemo(() => createWoodTexture(), []);
-  const bumpMap = useMemo(() => createWoodBumpMap(), []);
 
   useEffect(() => {
-    return () => {
-      geometry.dispose();
-      woodTexture.dispose();
-      bumpMap.dispose();
-    };
-  }, [geometry, woodTexture, bumpMap]);
+    return () => { geometry.dispose(); };
+  }, [geometry]);
 
   useEffect(() => {
     if (isRolling && meshRef.current) {
@@ -208,80 +217,117 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
         rotationRef.current.x += rotationVelocityRef.current.x * delta;
         rotationRef.current.y += rotationVelocityRef.current.y * delta;
         rotationRef.current.z += rotationVelocityRef.current.z * delta;
-
         rotationVelocityRef.current.x *= 0.985;
         rotationVelocityRef.current.y *= 0.985;
         rotationVelocityRef.current.z *= 0.985;
-
-        meshRef.current.rotation.x = rotationRef.current.x;
-        meshRef.current.rotation.y = rotationRef.current.y;
-        meshRef.current.rotation.z = rotationRef.current.z;
-      } else {
-        meshRef.current.rotation.x += (rotationRef.current.x - meshRef.current.rotation.x) * 0.08;
-        meshRef.current.rotation.y += (rotationRef.current.y - meshRef.current.rotation.y) * 0.08;
-        meshRef.current.rotation.z += (rotationRef.current.z - meshRef.current.rotation.z) * 0.08;
       }
+      meshRef.current.rotation.x += (rotationRef.current.x - meshRef.current.rotation.x) * 0.08;
+      meshRef.current.rotation.y += (rotationRef.current.y - meshRef.current.rotation.y) * 0.08;
+      meshRef.current.rotation.z += (rotationRef.current.z - meshRef.current.rotation.z) * 0.08;
     }
   });
 
-  const handleClick = (): void => {
-    if (!isRolling) onRoll();
-  };
+  return (
+    <mesh ref={meshRef} geometry={geometry} position={position}>
+      <meshStandardMaterial
+        map={woodTexture}
+        bumpMap={bumpMap}
+        bumpScale={0.02}
+        color="#CD853F"
+        metalness={0.05}
+        roughness={0.75}
+      />
+      {/* Always show result when available */}
+      {result !== null && (
+        <Html center distanceFactor={3} style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          <div style={{
+            fontSize: isRolling ? '1.3rem' : '1.8rem',
+            fontWeight: 900,
+            color: '#1a0800',
+            fontFamily: '"Times New Roman", Georgia, serif',
+            textShadow: '0 0 4px rgba(255, 248, 220, 0.9), 1px 1px 0 rgba(210, 180, 140, 0.6)',
+            opacity: isRolling ? 0.6 : 1,
+            transition: 'all 0.3s ease',
+          }}>
+            {result}
+          </div>
+        </Html>
+      )}
+    </mesh>
+  );
+};
 
-  const handlePointerOver = (e: THREE.Event): void => {
-    if (!isRolling) {
-      (e as { stopPropagation: () => void }).stopPropagation();
-      document.body.style.cursor = 'pointer';
+interface MultiDiceSceneProps {
+  dice: DiceData[];
+  isRolling: boolean;
+  animationSpeed: number;
+}
+
+const MultiDiceScene: React.FC<MultiDiceSceneProps> = ({ dice, isRolling, animationSpeed }) => {
+  const woodTexture = useMemo(() => createWoodTexture(), []);
+  const bumpMap = useMemo(() => createWoodBumpMap(), []);
+
+  useEffect(() => {
+    return () => {
+      woodTexture.dispose();
+      bumpMap.dispose();
+    };
+  }, [woodTexture, bumpMap]);
+
+  const positions = useMemo((): [number, number, number][] => {
+    const count = dice.length;
+    const spacing = 2.2;
+    
+    if (count === 0) return [];
+    if (count === 1) return [[0, 0, 0]];
+    if (count === 2) return [[-spacing / 2, 0, 0], [spacing / 2, 0, 0]];
+    if (count === 3) {
+      return [
+        [0, spacing / 3, 0],
+        [-spacing / 2, -spacing / 3, 0],
+        [spacing / 2, -spacing / 3, 0]
+      ];
     }
-  };
+    
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const result: [number, number, number][] = [];
+    
+    for (let i = 0; i < count; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = (col - (cols - 1) / 2) * spacing;
+      const y = ((rows - 1) / 2 - row) * spacing;
+      result.push([x, y, 0]);
+    }
+    
+    return result;
+  }, [dice.length]);
 
-  const handlePointerOut = (): void => {
-    document.body.style.cursor = 'default';
-  };
+  const cameraZ = useMemo(() => {
+    const count = dice.length;
+    if (count <= 1) return 5;
+    if (count <= 2) return 6;
+    if (count <= 4) return 7;
+    if (count <= 6) return 9;
+    return 11;
+  }, [dice.length]);
 
   return (
     <>
-      <mesh
-        ref={meshRef}
-        geometry={geometry}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <meshStandardMaterial
-          map={woodTexture}
+      <PerspectiveCamera makeDefault position={[0, 0, cameraZ]} />
+      {dice.map((die, index) => (
+        <SingleDiceMesh
+          key={die.id}
+          sides={getSidesForDie(die.type)}
+          result={die.result}
+          isRolling={isRolling}
+          animationSpeed={animationSpeed}
+          position={positions[index] || [0, 0, 0]}
+          woodTexture={woodTexture}
           bumpMap={bumpMap}
-          bumpScale={0.02}
-          color="#CD853F"
-          metalness={0.05}
-          roughness={0.75}
         />
-        
-        {/* Show result number on dice - ALWAYS visible when result exists */}
-        {result !== null && (
-          <Html
-            center
-            distanceFactor={3.5}
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
-          >
-            <div
-              style={{
-                fontSize: isRolling ? '2rem' : '3rem',
-                fontWeight: 900,
-                color: '#1a0800',
-                fontFamily: '"Times New Roman", Georgia, serif',
-                textShadow: '0 0 4px rgba(255, 248, 220, 0.9), 1px 1px 0 rgba(210, 180, 140, 0.6)',
-                letterSpacing: '-1px',
-                opacity: isRolling ? 0.7 : 1,
-                transition: 'all 0.3s ease',
-              }}
-            >
-              {result}
-            </div>
-          </Html>
-        )}
-      </mesh>
-
+      ))}
       <ambientLight intensity={0.5} color="#fff8dc" />
       <directionalLight position={[5, 5, 5]} intensity={0.8} color="#fffaf0" />
       <directionalLight position={[-3, 3, -3]} intensity={0.4} color="#ffecd2" />
@@ -291,38 +337,40 @@ const DiceMesh: React.FC<DiceMeshProps> = ({ result, isRolling, animationSpeed, 
   );
 };
 
-const Dice3D: React.FC<Dice3DProps> = ({
-  result,
+const MultiDiceDisplay: React.FC<MultiDiceDisplayProps> = ({
+  dice,
   isRolling,
   animationSpeed,
   onRoll,
-  sides,
-  size,
 }) => {
-  const sizeClass =
-    size === 'small' ? 'w-40 h-40' : 
-    size === 'large' ? 'w-80 h-80' : 
-    size === 'xl' ? 'w-[28rem] h-[28rem]' : 
-    'w-64 h-64';
+  const count = dice.length;
+  
+  const sizeClass = count <= 1 ? 'w-64 h-64' :
+    count <= 2 ? 'w-80 h-64' :
+    count <= 4 ? 'w-96 h-80' :
+    count <= 6 ? 'w-[28rem] h-96' :
+    'w-[32rem] h-[28rem]';
+
+  if (count === 0) return null;
 
   const handleClick = (): void => {
     if (!isRolling) onRoll();
   };
 
   return (
-    <div className={`${sizeClass} cursor-pointer`} onClick={handleClick}>
-      <Canvas>
-        <PerspectiveCamera makeDefault position={[0, 0, 5]} />
-        <DiceMesh
-          result={result}
+    <div 
+      className={`${sizeClass} cursor-pointer flex items-center justify-center`}
+      onClick={handleClick}
+    >
+      <Canvas className="w-full h-full">
+        <MultiDiceScene
+          dice={dice}
           isRolling={isRolling}
           animationSpeed={animationSpeed}
-          onRoll={onRoll}
-          sides={sides}
         />
       </Canvas>
     </div>
   );
 };
 
-export default Dice3D;
+export default MultiDiceDisplay;
